@@ -19,6 +19,11 @@ class CoreListView(
     permission_action = "view"
 
 
+    def get_template_names(self):
+        if self.request.htmx:
+            return ["core/includes/table_content.html"]
+        return ["core/list.html"]
+
 class CoreFilterView(
     CoreBaseMixin,
     SingleTableMixin,

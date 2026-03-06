@@ -27,7 +27,7 @@
       >
         {% generate_menu %}
         {% for item in menus.presente  %}
-        {% if forloop.counter == 4 %}
+        {% if item.title == "Atividades" %}
         <li class="nav-header border-top mt-2 pt-2">ADMINISTRAÇÃO</li>
         {% endif %}
         <li class="nav-item {% if item.selected and item.children %}menu-open{% endif %}">

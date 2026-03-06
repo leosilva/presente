@@ -1,7 +1,12 @@
+from multiprocessing import context
 from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.decorators import login_required
+from django.db.models import Sum
 from django.views.generic.base import TemplateView
+from django.views.generic import ListView
+from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
-from django.shortcuts import get_object_or_404
+from django.shortcuts import get_object_or_404,render
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.http import Http404
@@ -25,14 +30,15 @@ import os
 import csv
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Activity, Attendance, Network
+from .models import Activity, Attendance, Network,UsuarioGamificacao,Evento
 from .tables import (
     ActivityTable,
     AttendanceTable,
     ActivityAttendanceTable,
     NetworkTable,
+    EventoTable,
 )
-from .forms import ActivityForm, AttendancePrintConfigForm, NetworkForm
+from .forms import ActivityForm, AttendancePrintConfigForm, NetworkForm, EventoForm
 from .filters import ActivityFilter, AttendanceFilter, ActivityAttendanceFilter
 from .mixins import ActivityOwnerMixin
 from .utils import (
@@ -46,7 +52,8 @@ from .utils import (
 User = get_user_model()
 
 
-class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView):
+class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView): # view da página inicial
+    from .models import UsuarioGamificacao
     template_name = "presente/index.html"
     page_title = _("Dashboard")
 
@@ -66,6 +73,15 @@ class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView):
             .select_related("activity")
             .order_by("-checked_in_at")[:5]
         )
+        total_points = (
+            UsuarioGamificacao.objects
+            .filter(user=self.request.user)
+            .select_related("gamificacao")
+             .aggregate(total=Sum("gamificacao__pontos"))
+        )["total"] or 0
+
+        context["my_points"] = total_points
+
         return context
 
 
@@ -77,9 +93,9 @@ class ActivityListView(CoreFilterView):
     permission_required = []
 
     def get_queryset(self):
-        return Activity.objects.filter(owners=self.request.user).order_by(
+        return Activity.objects.filter(is_enabled=True).order_by(
             "-modified_at", "-start_time"
-        )
+    )
 
 
 class AdminActivitiesView(SuperuserRequiredMixin, CoreFilterView):
@@ -305,7 +321,40 @@ class MyAttendancesView(CoreFilterView):
             .prefetch_related("activity__tags")
             .order_by("-checked_in_at")
         )
+@login_required
+def minhas_pontuacoes(request):
+    gamificacoes_usuario = (
+        UsuarioGamificacao.objects
+        .select_related("gamificacao", "gamificacao__trilha", "gamificacao__tipo")
+        .filter(user=request.user)
+    )
 
+    total_pontos = sum(
+        ug.gamificacao.pontos for ug in gamificacoes_usuario
+    )
+
+    context = {
+        "gamificacoes_usuario": gamificacoes_usuario,
+        "total_pontos": total_pontos,
+    }
+
+    return render(request, "presente/minhas_pontuacoes.html", context)
+class RankingListView(ListView):
+    model = User
+    template_name = "presente/ranking.html"
+    context_object_name = "ranking"
+
+    def get_queryset(self):
+        return (
+            User.objects
+            .annotate(
+                total_pontos=Coalesce(
+                    Sum("gamificacoes_recebidas__gamificacao__pontos"),
+                    0
+                )
+            )
+            .order_by("-total_pontos", "username")
+        )
 
 class ActivityAttendanceListView(ActivityOwnerMixin, CoreFilterView):
     model = Attendance
@@ -363,7 +412,23 @@ class AttendanceDeleteView(CoreDeleteView):
         return reverse_lazy(
             "presente:activity_attendances", kwargs={"pk": self.kwargs["activity_pk"]}
         )
+class EventoActivityListView(CoreFilterView):
+    model = Activity
+    table_class = ActivityTable
+    filterset_class = ActivityFilter
+    template_name = "core/list.html"
+    table_pagination = {"per_page": 20}
 
+    def get_queryset(self):
+        evento = get_object_or_404(Evento, pk=self.kwargs["evento_pk"])
+        return Activity.objects.filter(evento=evento)
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["evento"] = get_object_or_404(
+            Evento, pk=self.kwargs["evento_pk"]
+        )
+        return context
 
 class ActivityAttendanceExportConfigView(
     ActivityOwnerMixin,
@@ -640,7 +705,6 @@ class NetworkListView(SuperuserRequiredMixin, CoreListView):
     model = Network
     table_class = NetworkTable
 
-
 class NetworkCreateView(SuperuserRequiredMixin, CoreCreateView):
     model = Network
     page_title = _("Redes")
@@ -661,3 +725,32 @@ class NetworkUpdateView(SuperuserRequiredMixin, CoreUpdateView):
 class NetworkDeleteView(SuperuserRequiredMixin, CoreDeleteView):
     model = Network
     page_title = _("Redes")
+# Evento CRUD Views
+
+class EventoListView(SuperuserRequiredMixin, CoreListView):
+    page_title = _("Eventos")
+    model = Evento
+    table_class = EventoTable
+   
+
+
+class EventoCreateView(SuperuserRequiredMixin, CoreCreateView):
+    model = Evento
+    page_title = _("Eventos")
+    form_class = EventoForm
+
+
+class EventoDetailView(SuperuserRequiredMixin, CoreDetailView):
+    model = Evento
+    page_title = _("Eventos")
+
+
+class EventoUpdateView(SuperuserRequiredMixin, CoreUpdateView):
+    model = Evento
+    page_title = _("Eventos")
+    form_class = EventoForm
+
+
+class EventoDeleteView(SuperuserRequiredMixin, CoreDeleteView):
+    model = Evento
+    page_title = _("Eventos")

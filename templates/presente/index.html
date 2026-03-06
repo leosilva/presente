@@ -2,7 +2,7 @@
 
 {% block app_content %}
 <div class="container-fluid">
-  <div class="row">
+  <div class="row g-4">
     {% if perms.presente.view_activity %}
     <div class="col-lg-3 col-6">
       <div class="card h-100">
@@ -46,7 +46,28 @@
         </div>
       </div>
     </div>
+  
+  <div class="col-lg-3 col-6">
+  <div class="card h-100">
+    <div class="card-body">
+      <div class="d-flex justify-content-between align-items-center">
+        <div>
+          <h6 class="text-muted text-uppercase mb-2">Minhas Pontuações</h6>
+          <h2 class="mb-0">{{ my_points }}</h2>
+        </div>
+        <div class="text-warning" style="font-size: 3rem;">
+          <i class="bi bi-trophy-fill"></i>
+        </div>
+      </div>
+    </div>
+    <div class="card-footer bg-light">
+       <a href="{% url 'presente:minhas_pontuacoes' %}" class="small text-decoration-none">
+         Ver todas <i class="bi bi-arrow-right"></i>
+       </a>
+    </div>
   </div>
+</div>
+ </div>
 
   {% if recent_attendances %}
   <div class="row mt-4">
@@ -117,11 +138,13 @@
               <li><strong>Tags:</strong> Organize suas atividades com tags para facilitar buscas e relatórios.</li>
               <li><strong>QR Code:</strong> O <strong>presente!</strong> gera códigos dinâmicos que garantem segurança e evitam compartilhamentos indevidos.</li>
               <li><strong>Presenças:</strong> Acompanhe quem registrou presença e consulte o histórico rapidamente.</li>
+              <li><strong>Pontuações:</strong> Atribua pontos para atividades e acompanhe o histórico de pontuações.</li>
             {% else %}
               <li><strong>Atividades:</strong> Registre presença escaneando o QR Code exibido na sala ou no evento.</li>
               <li><strong>QR Code:</strong> O código muda automaticamente para garantir que apenas quem está presente possa usá-lo.</li>
               <li><strong>Tags:</strong> Use tags para filtrar e visualizar suas presenças com facilidade.</li>
-              <li><strong>Presenças:</strong> Consulte seu histórico de forma simples no <strong>presente!</strong>.</li>
+              <li><strong>Presenças:</strong> Consulte seu histórico de presenças de forma simples no <strong>presente!</strong>.</li>
+              <li><strong>Pontuações:</strong> Consulte seu histórico de pontuações de forma simples no <strong>presente!</strong>.</li>
             {% endif %}
           </ul>
         </div>

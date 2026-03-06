@@ -1,7 +1,7 @@
 import django_tables2
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
-from .models import Activity, Attendance, Network
+from .models import Activity, Attendance, Network,Evento
 
 
 class CoreTable(django_tables2.Table):
@@ -27,6 +27,11 @@ class ActivityTable(CoreTable):
         order_by="tags__name",
         exclude_from_export=True,
     )
+    evento = django_tables2.Column(
+    verbose_name=_("Evento"),
+    accessor="evento",
+    orderable=True,
+)
 
     def render_status(self, record):
         status_map = {
@@ -39,7 +44,7 @@ class ActivityTable(CoreTable):
 
     class Meta:
         model = Activity
-        fields = ("title", "tags_list", "start_time", "end_time", "status")
+        fields = ("title", "evento", "tags_list", "start_time", "end_time", "status")
 
 
 class AttendanceTable(django_tables2.Table):
@@ -143,3 +148,18 @@ class NetworkTable(CoreTable):
         model = Network
         fields = ("name", "description", "is_active")
         attrs = {"class": "table table-striped"}
+class EventoTable(django_tables2.Table):
+    atividades = django_tables2.TemplateColumn(
+    template_code="""
+        <a href="{% url 'presente:evento-atividades' record.pk %}"
+           class="btn btn-sm btn-outline-primary">
+           Ver Atividades
+        </a>
+    """,
+    verbose_name="Atividades",
+    orderable=False,
+)
+    class Meta:
+        model = Evento
+        fields = ("nome", "tipo", "data_inicio", "data_fim","atividades")
+

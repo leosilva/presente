@@ -1,0 +1,78 @@
+{% extends "presente/private_base.html" %}
+
+{% block app_content %}
+<div class="container-fluid">
+
+  <!-- Card total de pontos -->
+  <div class="row">
+    <div class="col-lg-3 col-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted text-uppercase mb-2">Total de Pontos</h6>
+              <h2 class="mb-0">{{ total_pontos }}</h2>
+            </div>
+            <div class="text-warning" style="font-size: 3rem;">
+              <i class="bi bi-star-fill"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lista de conquistas -->
+  <div class="row mt-4">
+    <div class="col-12">
+      <div class="card card-primary">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-trophy"></i> Minhas Conquistas
+          </div>
+        </div>
+
+        <div class="card-body p-0">
+          {% if gamificacoes_usuario %}
+          <div class="table-responsive">
+            <table class="table table-striped table-hover mb-0">
+              <thead>
+                <tr>
+                  <th>Título</th>
+                  <th>Tipo</th>
+                  <th>Trilha</th>
+                  <th>Pontos</th>
+                  <th>Data</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for ug in gamificacoes_usuario %}
+                <tr>
+                  <td>{{ ug.gamificacao.titulo }}</td>
+                  <td>{{ ug.gamificacao.tipo.get_tipo_display }}</td>
+                  <td>{{ ug.gamificacao.trilha.name }}</td>
+                  <td>
+                    <span class="badge bg-success">
+                      +{{ ug.gamificacao.pontos }}
+                    </span>
+                  </td>
+                  <td>{{ ug.data_concedida|date:"d/m/Y H:i" }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% else %}
+          <div class="p-4 text-center text-muted">
+            <i class="bi bi-emoji-neutral" style="font-size: 2rem;"></i>
+            <p class="mb-0 mt-2">Você ainda não possui pontuações.</p>
+          </div>
+          {% endif %}
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

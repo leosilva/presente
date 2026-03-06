@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from taggit.models import Tag
-from .models import Activity, Network
+from .models import Activity, Network, Evento
 
 User = get_user_model()
 
@@ -27,6 +27,7 @@ class ActivityForm(forms.ModelForm):
     class Meta:
         model = Activity
         fields = [
+            "evento",
             "title",
             "start_time",
             "end_time",
@@ -37,6 +38,7 @@ class ActivityForm(forms.ModelForm):
             "owners",
         ]
         widgets = {
+            "evento": forms.Select(attrs={"class": "form-control"}),
             "title": forms.TextInput(attrs={"class": "form-control"}),
             "start_time": forms.DateTimeInput(
                 attrs={
@@ -90,6 +92,7 @@ class ActivityForm(forms.ModelForm):
         # Set field order
         self.order_fields(
             [
+                "evento",
                 "title",
                 "tags",
                 "start_time",
@@ -191,4 +194,12 @@ class NetworkForm(forms.ModelForm):
                 }
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+        }
+class EventoForm(forms.ModelForm):
+    class Meta:
+        model = Evento
+        fields = "__all__"
+        widgets = {
+            "data_inicio": forms.DateTimeInput(attrs={"type": "datetime-local"}),
+            "data_fim": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }

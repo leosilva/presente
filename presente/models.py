@@ -1,5 +1,6 @@
 from django.db import models
 from django.contrib.auth import get_user_model
+from django.core.exceptions import ValidationError
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from taggit.managers import TaggableManager
@@ -62,6 +63,7 @@ class ActivityManager(models.Manager):
 
 
 class Activity(models.Model):
+    
     owners = models.ManyToManyField(
         User,
         related_name="owned_activities",
@@ -100,13 +102,55 @@ class Activity(models.Model):
         blank=True,
         help_text=_("Selecione as redes que podem acessar esta atividade"),
     )
+    trilha = models.ForeignKey(
+    "TrilhaGamificacao",
+    on_delete=models.CASCADE,
+    related_name="activities",
+    verbose_name=_("Trilha"),
+)
+    gamificacao = models.ForeignKey(
+        "Gamificacao",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activities",
+        verbose_name=_("Gamificação associada"),
+        help_text=_("Gamificação concedida ao registrar presença nesta atividade."),
+    )
+    def clean(self):
+        if self.gamificacao and self.trilha:
+            if self.gamificacao.trilha != self.trilha:
+                raise ValidationError(
+                    _("A gamificação deve pertencer à mesma trilha da atividade.")
+                )
+        if self.evento:
+            if self.start_time < self.evento.data_inicio:
+                raise ValidationError(
+                    _("A atividade não pode iniciar antes do evento.")
+                )
+            if self.end_time > self.evento.data_fim:
+                raise ValidationError(
+                    _("A atividade não pode terminar após o evento.")
+                )
+        
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+    evento = models.ForeignKey(
+        "Evento",
+        on_delete=models.CASCADE,
+        related_name="activities",
+        verbose_name=_("Evento"),
+        null=True,
+        blank=True
+    )
     created_at = models.DateTimeField(
         _("Criação"), auto_now_add=True, null=True, blank=True
     )
     modified_at = models.DateTimeField(
         _("Modificação"), auto_now=True, null=True, blank=True
     )
-
+   
     objects = ActivityManager()
 
     def __str__(self):
@@ -164,6 +208,7 @@ class Activity(models.Model):
     class Meta:
         verbose_name = _("Atividade")
         verbose_name_plural = _("Atividades")
+
 
 
 class Attendance(models.Model):
@@ -228,9 +273,210 @@ class Attendance(models.Model):
         except ValueError:
             # Invalid IP address
             return self.ip_address
+    def save(self, *args, **kwargs):
+        is_new = self.pk is None
+        super().save(*args, **kwargs)
+
+        if is_new and self.activity.gamificacao:
+                UsuarioGamificacao.objects.get_or_create(
+                user=self.user,
+                gamificacao=self.activity.gamificacao
+            )
 
     class Meta:
         verbose_name = _("Presença")
         verbose_name_plural = _("Presenças")
         unique_together = [["activity", "user"]]
         ordering = ["-checked_in_at"]
+
+class TrilhaGamificacao(models.Model):
+    name = models.CharField(_("Nome"), max_length=100, default="Trilha de Entrada")
+
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+        help_text=_("Descrição da trilha")
+    )
+
+
+    class Meta:
+        verbose_name = _("Trilha")
+        verbose_name_plural = _("Trilhas")
+        ordering = ["name"]
+
+    def __str__(self):
+        return self.name
+
+
+class TipoGamificacao(models.Model):
+    class Tipo(models.TextChoices):
+        BADGE = 'BDG', _('Badge')
+        TROFEU = 'TRF', _('Troféu')
+        MEDALHA = 'MDL', _('Medalha')
+
+    trilha = models.ForeignKey(
+        TrilhaGamificacao,
+        on_delete=models.CASCADE,
+        related_name="tipos"
+    )
+
+    tipo = models.CharField(
+        _("Tipo"),
+        max_length=3,
+        choices=Tipo.choices,
+    )
+
+    icone = models.ImageField(
+        _("Ícone"),
+        upload_to='gamificacao/icones/',
+        blank=True,
+        null=True,
+    )
+
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+    )
+
+    class Meta:
+        verbose_name = _("Tipo de gamificação")
+        verbose_name_plural = _("Tipos de gamificação")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["trilha", "tipo"],
+                name="unique_tipo_por_trilha"
+            )
+        ]
+        ordering = ["tipo"]
+
+    def __str__(self):
+        return f"{self.get_tipo_display()} — {self.trilha.name}"
+class Gamificacao(models.Model):
+    titulo = models.CharField(
+        _("Título"),
+        max_length=150,
+        help_text=_("Nome da gamificação ou conquista"),
+    )
+
+    tipo = models.ForeignKey(
+        "TipoGamificacao",
+        on_delete=models.PROTECT,
+        related_name="gamificacoes",
+        verbose_name=_("Tipo"),
+    )
+
+    trilha = models.ForeignKey(
+        "TrilhaGamificacao",
+        on_delete=models.CASCADE,
+        related_name="gamificacoes",
+        verbose_name=_("Trilha"),
+    )
+
+    pontos = models.PositiveIntegerField(
+        _("Pontos"),
+        default=0,
+        help_text=_("Quantidade de pontos concedidos"),
+    )
+    def clean(self):
+        if self.tipo.trilha != self.trilha:
+           raise ValidationError(
+             _("O tipo de gamificação deve pertencer à mesma trilha.")
+        )
+
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)
+
+    class Meta:
+        verbose_name = _("Gamificação")
+        verbose_name_plural = _("Gamificações")
+        ordering = ["titulo"]
+
+    def __str__(self):
+        return f"{self.titulo} — {self.trilha.name}"
+class UsuarioGamificacao(models.Model):
+    user = models.ForeignKey(
+    User,
+    on_delete=models.CASCADE,
+    related_name="gamificacoes_recebidas",
+    verbose_name=_("Usuário"),
+    )
+    gamificacao = models.ForeignKey(
+    Gamificacao,
+    on_delete=models.CASCADE,
+    related_name="usuarios",
+    verbose_name=_("Gamificação"),
+    )
+    data_concedida = models.DateTimeField(
+    _("Data concedida"),
+    auto_now_add=True,
+    )
+    class Meta:
+        verbose_name = _("Gamificação do usuário")
+        verbose_name_plural = _("Gamificações dos usuários")
+        unique_together = ["user", "gamificacao"]
+    def __str__(self):
+        return f"{self.user} — {self.gamificacao}"
+## Contéudo do model Evento
+class Campus(models.Model):
+    nome = models.CharField(
+        _("Nome"),
+        max_length=100,
+        unique=True
+    )
+
+    class Meta:
+        verbose_name = _("Campus")
+        verbose_name_plural = _("Campi")
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+class Evento(models.Model):
+
+    class TipoEvento(models.TextChoices):
+        EXPOTEC = "EXP", _("EXPOTEC")
+        SEMADEC = "SEM", _("SEMADEC")
+        OUTRO = "OUT", _("Outro")
+
+    nome = models.CharField(
+        _("Nome"),
+        max_length=150
+    )
+
+    campus = models.ManyToManyField(
+        Campus,
+        verbose_name=_("Campus"),
+        related_name="eventos"
+    )
+
+    data_inicio = models.DateTimeField(_("Data de Início"))
+    data_fim = models.DateTimeField(_("Data de Fim"))
+
+    tipo = models.CharField(
+        _("Tipo"),
+        max_length=3,
+        choices=TipoEvento.choices
+    )
+
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True
+    )
+
+    class Meta:
+        verbose_name = _("Evento")
+        verbose_name_plural = _("Eventos")
+        ordering = ["-data_inicio"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.get_tipo_display()})"
+    def clean(self):
+        if self.data_inicio and self.data_fim:
+            if self.data_fim < self.data_inicio:
+                raise ValidationError(
+                    _("A data de fim não pode ser anterior à data de início.")
+                )
+    def save(self, *args, **kwargs):
+        self.full_clean()
+        super().save(*args, **kwargs)

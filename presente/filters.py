@@ -3,7 +3,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from taggit.models import Tag
-from .models import Activity, Attendance
+from .models import Activity, Attendance,Evento
 
 User = get_user_model()
 
@@ -20,6 +20,10 @@ class ActivityFilter(django_filters.FilterSet):
         lookup_expr="icontains",
         label=_("Título"),
         widget=forms.TextInput(attrs={"class": "form-control"}),
+    )
+    evento = django_filters.ModelChoiceFilter(
+        queryset=Evento.objects.all(),
+        label="Evento"
     )
     status = django_filters.ChoiceFilter(
         choices=STATUS_CHOICES,
@@ -69,6 +73,7 @@ class ActivityFilter(django_filters.FilterSet):
         model = Activity
         fields = [
             "title",
+            "evento",
             "status",
             "tags",
             "start_time__gte",

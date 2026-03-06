@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Activity, Attendance, Network
+from .models import Activity, Attendance, Network, TipoGamificacao,TrilhaGamificacao,Gamificacao,UsuarioGamificacao,Evento,Campus
 
 
 @admin.register(Network)
@@ -55,3 +55,35 @@ class AttendanceAdmin(admin.ModelAdmin):
         return obj.ip_address
 
     network_display.short_description = "Rede"
+
+
+
+@admin.register(TrilhaGamificacao)
+class TrilhaGamificacaoAdmin(admin.ModelAdmin):
+    search_fields = ("name",)
+@admin.register(TipoGamificacao)
+class TipoGamificacaoAdmin(admin.ModelAdmin):
+    list_display = ("tipo", "trilha")
+    list_filter = ("tipo", "trilha")
+@admin.register(Gamificacao)
+class GamificacaoAdmin(admin.ModelAdmin):
+    list_display = ("titulo", "trilha", "tipo", "pontos")
+    list_filter = ("trilha", "tipo")
+    search_fields = ("titulo",)
+
+@admin.register(UsuarioGamificacao)
+class UsuarioGamificacaoAdmin(admin.ModelAdmin):
+    list_display = ("user", "gamificacao", "data_concedida")
+    list_filter = ("gamificacao", "data_concedida")
+    search_fields = ("user__username", "gamificacao__titulo")
+    def pontos(self, obj):
+        return obj.gamificacao.pontos
+
+    pontos.short_description = "Pontos"
+@admin.register(Evento)
+class EventoAdmin(admin.ModelAdmin):
+    list_display = ("nome", "tipo", "data_inicio", "data_fim")
+    list_filter = ("tipo", "campus")
+    search_fields = ("nome",)
+
+admin.site.register(Campus)
