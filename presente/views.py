@@ -30,7 +30,8 @@ import os
 import csv
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Activity, Attendance, Network,UsuarioGamificacao,Evento
+from .models import Activity, Attendance, Network, Evento
+from .services import PointService
 from .tables import (
     ActivityTable,
     AttendanceTable,
@@ -73,14 +74,7 @@ class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView): # view da pá
             .select_related("activity")
             .order_by("-checked_in_at")[:5]
         )
-        total_points = (
-            UsuarioGamificacao.objects
-            .filter(user=self.request.user)
-            .select_related("gamificacao")
-             .aggregate(total=Sum("gamificacao__pontos"))
-        )["total"] or 0
-
-        context["my_points"] = total_points
+        context["my_points"] = PointService.calculate_user_point(self.request.user)
 
         return context
 
@@ -323,15 +317,8 @@ class MyAttendancesView(CoreFilterView):
         )
 @login_required
 def minhas_pontuacoes(request):
-    gamificacoes_usuario = (
-        UsuarioGamificacao.objects
-        .select_related("gamificacao", "gamificacao__trilha", "gamificacao__tipo")
-        .filter(user=request.user)
-    )
-
-    total_pontos = sum(
-        ug.gamificacao.pontos for ug in gamificacoes_usuario
-    )
+    gamificacoes_usuario = PointService.get_user_gamificacoes(request.user)
+    total_pontos = PointService.calculate_user_point(request.user)
 
     context = {
         "gamificacoes_usuario": gamificacoes_usuario,

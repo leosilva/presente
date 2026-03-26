@@ -195,6 +195,7 @@ class NetworkForm(forms.ModelForm):
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
+        
 class EventoForm(forms.ModelForm):
     class Meta:
         model = Evento

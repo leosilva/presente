@@ -136,6 +136,7 @@ class Activity(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+        
     evento = models.ForeignKey(
         "Evento",
         on_delete=models.CASCADE,
@@ -277,11 +278,10 @@ class Attendance(models.Model):
         is_new = self.pk is None
         super().save(*args, **kwargs)
 
-        if is_new and self.activity.gamificacao:
-                UsuarioGamificacao.objects.get_or_create(
-                user=self.user,
-                gamificacao=self.activity.gamificacao
-            )
+        if is_new:
+            from .services import PointService
+
+            PointService.process_event("attendance.created", attendance=self)
 
     class Meta:
         verbose_name = _("Presença")
@@ -298,7 +298,6 @@ class TrilhaGamificacao(models.Model):
         help_text=_("Descrição da trilha")
     )
 
-
     class Meta:
         verbose_name = _("Trilha")
         verbose_name_plural = _("Trilhas")
@@ -306,7 +305,6 @@ class TrilhaGamificacao(models.Model):
 
     def __str__(self):
         return self.name
-
 
 class TipoGamificacao(models.Model):
     class Tipo(models.TextChoices):
@@ -351,6 +349,7 @@ class TipoGamificacao(models.Model):
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.trilha.name}"
+    
 class Gamificacao(models.Model):
     titulo = models.CharField(
         _("Título"),
@@ -394,6 +393,7 @@ class Gamificacao(models.Model):
 
     def __str__(self):
         return f"{self.titulo} — {self.trilha.name}"
+    
 class UsuarioGamificacao(models.Model):
     user = models.ForeignKey(
     User,
@@ -432,8 +432,8 @@ class Campus(models.Model):
 
     def __str__(self):
         return self.nome
-class Evento(models.Model):
 
+class Evento(models.Model):
     class TipoEvento(models.TextChoices):
         EXPOTEC = "EXP", _("EXPOTEC")
         SEMADEC = "SEM", _("SEMADEC")

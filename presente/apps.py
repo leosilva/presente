@@ -8,4 +8,4 @@ class PresenteConfig(AppConfig):
     name = "presente"
     verbose_name = _("Presente")
     def ready(self):
-        from . import signals  
+        from . import signals
