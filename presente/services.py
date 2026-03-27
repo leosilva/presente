@@ -16,6 +16,9 @@ class PointService:
     @classmethod
     def credit_gamificacao(cls, user, gamificacao):
         obj, created = UsuarioGamificacao.objects.get_or_create(
+            # O get_or_create já garante se há duplicatas.
+            # Pois caso o User já tenha a gamificação, ele
+            # utiliza o get, caso não, ele utiliza o create
             user=user,
             gamificacao=gamificacao
         )
