@@ -3,7 +3,10 @@ from .models import (
     Gamificacao,
     TrilhaGamificacao,
     UsuarioGamificacao,
-    Activity
+    Activity,
+    Attendance,
+    MarcosDiversidade,
+    
 )
 
 class PointService:
@@ -48,6 +51,13 @@ class PointService:
         user = attendance.user
         gamificacao = attendance.activity.gamificacao
         cls.credit_gamificacao(user, gamificacao) # Chama o método credit_gamificacao
+         # Verifica bônus de trilha
+        if attendance.activity.trilha:
+            cls._check_trilha_bonus(user, attendance.activity.trilha)
+
+        # Verifica bônus de diversidade
+        data_checkin = attendance.checked_in_at.date()
+        cls._check_diversidade_bonus(user, data_checkin)
 
     @classmethod
     def calculate_user_point(cls, user):
@@ -76,3 +86,57 @@ class PointService:
         if not handler:
             raise ValueError(f"Evento Desconhecido: {event_name}")
         return handler (**kwargs)
+    
+    @classmethod
+    def _check_trilha_bonus(cls, user, trilha):
+        # Guard: trilha precisa ter bônus configurado
+        if not trilha.gamificacao_bonus:
+            return
+        if not trilha.minimo_atividades:
+            return
+
+        # Evita conceder o bônus mais de uma vez
+        ja_tem_bonus = UsuarioGamificacao.objects.filter(
+            user=user,
+            gamificacao=trilha.gamificacao_bonus
+        ).exists()
+        if ja_tem_bonus:
+            return
+
+        # Conta presenças do usuário em atividades desta trilha
+        presencas_na_trilha = Attendance.objects.filter(
+            user=user,
+            activity__trilha=trilha
+        ).count()
+
+        if presencas_na_trilha >= trilha.minimo_atividades:
+            cls.credit_gamificacao(user, trilha.gamificacao_bonus)
+    @classmethod
+    def _check_diversidade_bonus(cls, user, data):
+        # Pega todas as áreas distintas em que o usuário participou no dia
+        areas_no_dia = (
+            Attendance.objects.filter(
+                user=user,
+                checked_in_at__date=data,
+                activity__area__isnull=False  # ignora atividades sem área
+            )
+            .values_list("activity__area", flat=True)
+            .distinct()
+        )
+        total_areas = areas_no_dia.count()
+
+        if total_areas == 0:
+            return
+
+        # Verifica todos os marcos que o usuário pode ter atingido
+        marcos = MarcosDiversidade.objects.filter(
+            areas_necessarias__lte=total_areas  # marcos que o usuário já atingiu
+        ).select_related("gamificacao_bonus")
+
+        for marco in marcos:
+            ja_tem_bonus = UsuarioGamificacao.objects.filter(
+                user=user,
+                gamificacao=marco.gamificacao_bonus
+            ).exists()
+            if not ja_tem_bonus:
+                cls.credit_gamificacao(user, marco.gamificacao_bonus)

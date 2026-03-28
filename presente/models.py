@@ -145,6 +145,15 @@ class Activity(models.Model):
         null=True,
         blank=True
     )
+    area = models.ForeignKey(
+        "Area",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activities",
+        verbose_name=_("Área"),
+        help_text=_("Área temática desta atividade")
+    )
     created_at = models.DateTimeField(
         _("Criação"), auto_now_add=True, null=True, blank=True
     )
@@ -288,7 +297,50 @@ class Attendance(models.Model):
         verbose_name_plural = _("Presenças")
         unique_together = [["activity", "user"]]
         ordering = ["-checked_in_at"]
+class Area(models.Model):
+    nome = models.CharField(
+        _("Nome"),
+        max_length=100,
+        unique=True,
+        help_text=_("Ex: Informática, Jogos, EBM")
+    )
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+    )
 
+    class Meta:
+        verbose_name = _("Área")
+        verbose_name_plural = _("Áreas")
+        ordering = ["nome"]
+
+    def __str__(self):
+        return self.nome
+class MarcosDiversidade(models.Model):
+    areas_necessarias = models.PositiveIntegerField(
+        _("Áreas necessárias"),
+        help_text=_("Quantidade de áreas diferentes no mesmo dia para ganhar o bônus")
+    )
+    gamificacao_bonus = models.ForeignKey(
+        "Gamificacao",
+        on_delete=models.CASCADE,
+        related_name="marcos_diversidade",
+        verbose_name=_("Gamificação de bônus"),
+        help_text=_("Gamificação concedida ao atingir este marco")
+    )
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+        help_text=_("Ex: Participou de 3 áreas diferentes no mesmo dia")
+    )
+
+    class Meta:
+        verbose_name = _("Marco de Diversidade")
+        verbose_name_plural = _("Marcos de Diversidade")
+        ordering = ["areas_necessarias"]
+
+    def __str__(self):
+        return f"{self.areas_necessarias} áreas → {self.gamificacao_bonus}"
 class TrilhaGamificacao(models.Model):
     name = models.CharField(_("Nome"), max_length=100, default="Trilha de Entrada")
 
@@ -296,6 +348,21 @@ class TrilhaGamificacao(models.Model):
         _("Descrição"),
         blank=True,
         help_text=_("Descrição da trilha")
+    )
+    minimo_atividades = models.PositiveIntegerField(
+        _("Mínimo de atividades para completar"),
+        default=1,
+        help_text=_("Quantidade mínima de presenças na trilha para ganhar o bônus")
+    )
+
+    gamificacao_bonus = models.ForeignKey(
+        "Gamificacao",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trilhas_bonus",
+        verbose_name=_("Gamificação de bônus"),
+        help_text=_("Gamificação concedida ao completar a trilha.")
     )
 
     class Meta:
