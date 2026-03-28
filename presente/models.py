@@ -297,7 +297,23 @@ class TrilhaGamificacao(models.Model):
         blank=True,
         help_text=_("Descrição da trilha")
     )
+    minimo_atividades = models.PositiveIntegerField(
+        _("Mínimo de atividades para completar"),
+        default=1,
+        help_text=_("Quantidade mínima de presenças na trilha para ganhar o bônus")
+    )
 
+    gamificacao_bonus = models.ForeignKey(
+        "Gamificacao",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="trilhas_bonus",
+        verbose_name=_("Gamificação de bônus"),
+        help_text=_("Gamificação concedida ao completar a trilha. Os pontos do bônus são definidos nela.")
+    )
+
+    
     class Meta:
         verbose_name = _("Trilha")
         verbose_name_plural = _("Trilhas")
