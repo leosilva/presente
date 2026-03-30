@@ -12,11 +12,6 @@ def dar_trilha_inicial(sender, instance, created, **kwargs):
     if created:
         PointService.process_event("user.created", user=instance)
 
-@receiver(post_save, sender=Attendance)
-def credit_pontos(sender, instance, created, **kwargs):
-    if created:
-        PointService.process_event("attendance.created", attendance=instance)
-
 @receiver(post_delete, sender=Attendance)
 def debit_pontos(sender, instance, **kwargs):
     PointService.process_event("attendance.canceled", attendance=instance)

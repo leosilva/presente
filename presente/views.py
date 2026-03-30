@@ -6,6 +6,7 @@ from django.views.generic.base import TemplateView
 from django.views.generic import ListView
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
+from django.contrib import messages
 from django.shortcuts import get_object_or_404,render
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
@@ -30,7 +31,7 @@ import os
 import csv
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Activity, Attendance, Network, Evento
+from .models import Activity, Attendance, Network, Evento, UsuarioGamificacao
 from .services import PointService
 from .tables import (
     ActivityTable,
@@ -287,7 +288,6 @@ class CheckInView(LoginRequiredMixin, TemplateView):
                     user=self.request.user,
                     defaults={"ip_address": client_ip},
                 )
-
                 context.update(
                     {
                         "success": True,
@@ -374,7 +374,6 @@ class ActivityAttendanceListView(ActivityOwnerMixin, CoreFilterView):
         allowed_actions["delete"] = "presente:attendance_delete"
         return allowed_actions
 
-
 class AttendanceDeleteView(CoreDeleteView):
     model = Attendance
     success_message = _("Presença removida com sucesso!")
@@ -399,6 +398,7 @@ class AttendanceDeleteView(CoreDeleteView):
         return reverse_lazy(
             "presente:activity_attendances", kwargs={"pk": self.kwargs["activity_pk"]}
         )
+    
 class EventoActivityListView(CoreFilterView):
     model = Activity
     table_class = ActivityTable
