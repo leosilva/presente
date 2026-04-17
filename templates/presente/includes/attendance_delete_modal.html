@@ -1,0 +1,59 @@
+{% load i18n %}
+
+<div class="modal-header bg-danger text-white">
+  <h5 class="modal-title">
+    <i class="bi bi-trash"></i> {% trans "Remover Presença" %}
+  </h5>
+  <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+
+<div class="modal-body">
+  <div class="alert alert-warning">
+    <strong>{% trans "Presença a remover:" %}</strong><br>
+    <span>{{ attendance.user.get_full_name }}</span><br>
+    <small class="text-muted">
+      {{ activity.title }} —
+      {% trans "registrado em" %} {{ attendance.checked_in_at|date:"d/m/Y H:i" }}
+    </small>
+  </div>
+
+  <p class="text-muted small">
+    {% trans "Esta ação irá:" %}
+  </p>
+  <ul class="text-muted small">
+    <li>{% trans "Remover permanentemente o registro de presença" %}</li>
+    <li>{% trans "Estornar os pontos concedidos (incluindo bônus de trilha e diversidade, se aplicável)" %}</li>
+    <li>{% trans "Registrar a remoção no histórico de auditoria" %}</li>
+  </ul>
+
+  <hr>
+
+  <form id="attendanceDeleteForm"
+        hx-post="{% url 'presente:attendance_delete' activity_pk=activity.pk pk=attendance.pk %}"
+        hx-target="body"
+        hx-push-url="false">
+    {% csrf_token %}
+
+    <div class="mb-3">
+      <label for="{{ form.justificativa.id_for_label }}" class="form-label fw-semibold">
+        {{ form.justificativa.label }} <span class="text-danger">*</span>
+      </label>
+      {{ form.justificativa }}
+      {% if form.justificativa.help_text %}
+        <div class="form-text">{{ form.justificativa.help_text }}</div>
+      {% endif %}
+      {% for error in form.justificativa.errors %}
+        <div class="text-danger small mt-1">{{ error }}</div>
+      {% endfor %}
+    </div>
+  </form>
+</div>
+
+<div class="modal-footer">
+  <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+    <i class="bi bi-x-circle"></i> {% trans "Cancelar" %}
+  </button>
+  <button type="submit" form="attendanceDeleteForm" class="btn btn-danger">
+    <i class="bi bi-trash"></i> {% trans "Confirmar Remoção" %}
+  </button>
+</div>

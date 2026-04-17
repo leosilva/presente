@@ -204,3 +204,20 @@ class EventoForm(forms.ModelForm):
             "data_inicio": forms.DateTimeInput(attrs={"type": "datetime-local"}),
             "data_fim": forms.DateTimeInput(attrs={"type": "datetime-local"}),
         }
+
+class AttendanceDeleteForm(forms.Form):
+    justificativa = forms.CharField(
+        label=_("Justificativa"),
+        widget=forms.Textarea(attrs={
+            "rows": 4,
+            "class": "form-control",
+            "placeholder": _("Descreva o motivo da remoção desta presença..."),
+        }),
+        min_length=10,
+        max_length=500,
+        help_text=_("Informe o motivo da remoção (mínimo 10 caracteres)."),
+        error_messages={
+            "min_length": _("A justificativa deve ter pelo menos 10 caracteres."),
+            "required": _("A justificativa é obrigatória para remover uma presença."),
+        },
+    )

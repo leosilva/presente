@@ -123,7 +123,7 @@ class Activity(models.Model):
                 raise ValidationError(
                     _("A gamificação deve pertencer à mesma trilha da atividade.")
                 )
-        if self.evento:
+        if self.evento and self.start_time and self.end_time:
             if self.start_time < self.evento.data_inicio:
                 raise ValidationError(
                     _("A atividade não pode iniciar antes do evento.")
@@ -297,6 +297,58 @@ class Attendance(models.Model):
         verbose_name_plural = _("Presenças")
         unique_together = [["activity", "user"]]
         ordering = ["-checked_in_at"]
+class AttendanceRemovalLog(models.Model):
+    """
+    Auditoria de remoções de presença feitas por responsáveis.
+    Preserva um snapshot dos dados da presença mesmo após a deleção.
+    """
+ 
+    # Quem removeu e quando
+    removed_by = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="attendance_removals",
+        verbose_name=_("Removido por"),
+    )
+    removed_at = models.DateTimeField(_("Removido em"), auto_now_add=True)
+ 
+    # Justificativa obrigatória
+    justificativa = models.TextField(
+        _("Justificativa"),
+        help_text=_("Motivo da remoção da presença."),
+    )
+ 
+    # Snapshot da presença removida (preserva dados mesmo após delete)
+    activity = models.ForeignKey(
+        "Activity",
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="removal_logs",
+        verbose_name=_("Atividade"),
+    )
+    attendance_user = models.ForeignKey(
+        User,
+        on_delete=models.SET_NULL,
+        null=True,
+        related_name="removal_logs",
+        verbose_name=_("Usuário da presença"),
+    )
+    checked_in_at_snapshot = models.DateTimeField(
+        _("Registrado em (original)"),
+        help_text=_("Data/hora original do check-in, preservada para histórico."),
+    )
+ 
+    class Meta:
+        verbose_name = _("Log de Remoção de Presença")
+        verbose_name_plural = _("Logs de Remoção de Presença")
+        ordering = ["-removed_at"]
+ 
+    def __str__(self):
+        return (
+            f"Remoção de {self.attendance_user} em "
+            f"{self.activity} por {self.removed_by}"
+        )
 class Area(models.Model):
     nome = models.CharField(
         _("Nome"),
@@ -548,3 +600,52 @@ class Evento(models.Model):
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+class PointHistory(models.Model):
+    """
+    Registro imutável de cada crédito ou débito de pontuação.
+    Garante que o histórico seja preservado mesmo quando UsuarioGamificacao
+    for removido.
+    """
+ 
+    class TipoMovimento(models.TextChoices):
+        CREDITO = "CRD", _("Crédito")
+        DEBITO = "DEB", _("Débito")
+ 
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="point_history",
+        verbose_name=_("Usuário"),
+    )
+    gamificacao = models.ForeignKey(
+        "Gamificacao",
+        on_delete=models.CASCADE,
+        related_name="point_history",
+        verbose_name=_("Gamificação"),
+    )
+    tipo = models.CharField(
+        _("Tipo"),
+        max_length=3,
+        choices=TipoMovimento.choices,
+    )
+    pontos = models.IntegerField(
+        _("Pontos"),
+        help_text=_("Positivo para crédito, negativo para débito."),
+    )
+    motivo = models.TextField(
+        _("Motivo"),
+        blank=True,
+        help_text=_("Descrição automática do motivo do movimento."),
+    )
+    criado_em = models.DateTimeField(_("Criado em"), auto_now_add=True)
+ 
+    class Meta:
+        verbose_name = _("Histórico de Pontos")
+        verbose_name_plural = _("Histórico de Pontos")
+        ordering = ["-criado_em"]
+ 
+    def __str__(self):
+        sinal = "+" if self.tipo == self.TipoMovimento.CREDITO else "-"
+        return f"{self.user} | {sinal}{self.pontos}pts | {self.gamificacao}"
+ 
+ 
