@@ -1,3 +1,5 @@
+## ─── services.py COMPLETO (substitui o arquivo atual) ───────────────────────
+
 from django.db.models import Sum
 from .models import (
     Gamificacao,
@@ -6,74 +8,245 @@ from .models import (
     Activity,
     Attendance,
     MarcosDiversidade,
-    
+    PointHistory,
 )
 
+
 class PointService:
-    
-    @classmethod
-    def debit_gamificacao(cls, user, gamificacao):
-        deleted, _ = UsuarioGamificacao.objects.filter(user=user, gamificacao=gamificacao).delete() # Deleta a gamificacao do usuário e armazena dentro de deleted
-        return deleted > 0 #.delete é praticamente um booleano, então se ele retorna 1 o delete funcionou. Se retorna 0, o delete não funcionou
+
+    # ──────────────────────────────────────────────────────────────
+    # Operações atômicas de crédito / débito
+    # ──────────────────────────────────────────────────────────────
 
     @classmethod
-    def credit_gamificacao(cls, user, gamificacao):
+    def debit_gamificacao(cls, user, gamificacao, motivo=""):
+        deleted, _ = UsuarioGamificacao.objects.filter(
+            user=user, gamificacao=gamificacao
+        ).delete()
+
+        if deleted > 0:
+            # Grava histórico mesmo após a deleção
+            PointHistory.objects.create(
+                user=user,
+                gamificacao=gamificacao,
+                tipo=PointHistory.TipoMovimento.DEBITO,
+                pontos=-gamificacao.pontos,
+                motivo=motivo or f"Estorno automático — {gamificacao.titulo}",
+            )
+
+        return deleted > 0
+
+    @classmethod
+    def credit_gamificacao(cls, user, gamificacao, motivo=""):
         obj, created = UsuarioGamificacao.objects.get_or_create(
-            # O get_or_create já garante se há duplicatas.
-            # Pois caso o User já tenha a gamificação, ele
-            # utiliza o get, caso não, ele utiliza o create
             user=user,
-            gamificacao=gamificacao
+            gamificacao=gamificacao,
         )
+
+        if created:
+            PointHistory.objects.create(
+                user=user,
+                gamificacao=gamificacao,
+                tipo=PointHistory.TipoMovimento.CREDITO,
+                pontos=gamificacao.pontos,
+                motivo=motivo or f"Concessão automática — {gamificacao.titulo}",
+            )
+
         return created
+
+    # ──────────────────────────────────────────────────────────────
+    # Consultas
+    # ──────────────────────────────────────────────────────────────
 
     @classmethod
     def get_user_gamificacoes(cls, user):
-        user_gamificacao = UsuarioGamificacao.objects.filter(user=user).select_related('gamificacao') # Acessa o banco de dados e pega todas as gamificações associadas ao usuário
-        return user_gamificacao
+        return UsuarioGamificacao.objects.filter(user=user).select_related(
+            "gamificacao"
+        )
 
     @classmethod
-    def _on_attendance_canceled(cls, attendance):   
-        if not attendance.activity: # Verifica se há atividade registrada na presença
+    def calculate_user_point(cls, user):
+        total = UsuarioGamificacao.objects.filter(user=user).aggregate(
+            total=Sum("gamificacao__pontos")
+        )
+        return total.get("total") or 0
+
+    # ──────────────────────────────────────────────────────────────
+    # Handlers de eventos
+    # ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def _on_user_created(cls, user):
+        boas_vindas = Gamificacao.objects.filter(titulo="Boas-vindas").first()
+        if not boas_vindas:
             return
-        if not attendance.activity.gamificacao: # Verifica se o usuário recebeu a pontuação
-            return
-        user = attendance.user
-        gamificacao = attendance.activity.gamificacao
-        cls.debit_gamificacao(user, gamificacao) # Chama o método debit_gamificacao
+        cls.credit_gamificacao(user, boas_vindas, motivo="Boas-vindas ao sistema")
 
     @classmethod
     def _on_attendance_created(cls, attendance):
-        if not attendance.activity: # Verifica se há atividade registrada na presença
+        if not attendance.activity:
             return
-        if not attendance.activity.gamificacao: # Verifica se tem alguma gamificação associada ao usuário
+        if not attendance.activity.gamificacao:
             return
+
         user = attendance.user
         gamificacao = attendance.activity.gamificacao
-        cls.credit_gamificacao(user, gamificacao) # Chama o método credit_gamificacao
-         # Verifica bônus de trilha
+        motivo = f"Presença registrada em: {attendance.activity.title}"
+        cls.credit_gamificacao(user, gamificacao, motivo=motivo)
+
+        # Verifica bônus de trilha
         if attendance.activity.trilha:
             cls._check_trilha_bonus(user, attendance.activity.trilha)
 
         # Verifica bônus de diversidade
+        cls._check_diversidade_bonus(user, attendance.checked_in_at.date())
+
+    @classmethod
+    def _on_attendance_canceled(cls, attendance, justificativa=""):
+        """
+        Reverte TODOS os pontos relacionados à presença removida:
+          1. Gamificação direta da atividade
+          2. Bônus de trilha (se o usuário perder o mínimo de presenças)
+          3. Bônus de diversidade (se o usuário perder o mínimo de áreas no dia)
+        """
+        if not attendance.activity:
+            return
+
+        user = attendance.user
+        activity = attendance.activity
+        base_motivo = (
+            f"Presença removida em: {activity.title}"
+            + (f" — {justificativa}" if justificativa else "")
+        )
+
+        # 1. Estorna gamificação direta
+        if activity.gamificacao:
+            cls.debit_gamificacao(
+                user,
+                activity.gamificacao,
+                motivo=base_motivo,
+            )
+
+        # 2. Estorna bônus de trilha se o usuário ficou abaixo do mínimo
+        if activity.trilha:
+            cls._check_trilha_bonus_reversal(user, activity.trilha, base_motivo)
+
+        # 3. Estorna bônus de diversidade se o usuário ficou abaixo do mínimo
         data_checkin = attendance.checked_in_at.date()
-        cls._check_diversidade_bonus(user, data_checkin)
+        cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo)
+
+    # ──────────────────────────────────────────────────────────────
+    # Bônus de trilha
+    # ──────────────────────────────────────────────────────────────
 
     @classmethod
-    def calculate_user_point(cls, user):
-        total_pontos = UsuarioGamificacao.objects.filter(user=user).aggregate(total=Sum('gamificacao__pontos'))
-        '''Acessa o banco de dados e pega todas as 
-        gamificações associadas ao usuário e usa o aggregate para navegar pelas
-        tabelas e somar os pontos usando Sum
-        '''
-        return total_pontos.get('total') or 0 # Retorna o total de pontos. caso não tenha pontos, retorna 0
+    def _check_trilha_bonus(cls, user, trilha):
+        if not trilha.gamificacao_bonus or not trilha.minimo_atividades:
+            return
+
+        ja_tem_bonus = UsuarioGamificacao.objects.filter(
+            user=user, gamificacao=trilha.gamificacao_bonus
+        ).exists()
+        if ja_tem_bonus:
+            return
+
+        presencas_na_trilha = Attendance.objects.filter(
+            user=user, activity__trilha=trilha
+        ).count()
+
+        if presencas_na_trilha >= trilha.minimo_atividades:
+            motivo = f"Bônus de trilha atingido: {trilha.name}"
+            cls.credit_gamificacao(user, trilha.gamificacao_bonus, motivo=motivo)
 
     @classmethod
-    def _on_user_created(cls, user):
-        user_gamificacao = Gamificacao.objects.filter(titulo="Boas-vindas").first()
-        if not user_gamificacao:
-            return 
-        cls.credit_gamificacao(user, user_gamificacao)
+    def _check_trilha_bonus_reversal(cls, user, trilha, base_motivo=""):
+        """
+        Remove o bônus de trilha se, após a remoção da presença,
+        o usuário ficar abaixo do mínimo exigido.
+        Nota: a contagem é feita ANTES do delete (o signal post_delete
+        já removeu a presença), então o count já reflete o estado pós-remoção.
+        """
+        if not trilha.gamificacao_bonus or not trilha.minimo_atividades:
+            return
+
+        presencas_restantes = Attendance.objects.filter(
+            user=user, activity__trilha=trilha
+        ).count()
+
+        if presencas_restantes < trilha.minimo_atividades:
+            motivo = (
+                f"Estorno de bônus de trilha '{trilha.name}' — "
+                f"presenças insuficientes após remoção. {base_motivo}"
+            )
+            cls.debit_gamificacao(user, trilha.gamificacao_bonus, motivo=motivo)
+
+    # ──────────────────────────────────────────────────────────────
+    # Bônus de diversidade
+    # ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def _check_diversidade_bonus(cls, user, data):
+        areas_no_dia = (
+            Attendance.objects.filter(
+                user=user,
+                checked_in_at__date=data,
+                activity__area__isnull=False,
+            )
+            .values_list("activity__area", flat=True)
+            .distinct()
+        )
+        total_areas = areas_no_dia.count()
+
+        if total_areas == 0:
+            return
+
+        marcos = MarcosDiversidade.objects.filter(
+            areas_necessarias__lte=total_areas
+        ).select_related("gamificacao_bonus")
+
+        for marco in marcos:
+            ja_tem_bonus = UsuarioGamificacao.objects.filter(
+                user=user, gamificacao=marco.gamificacao_bonus
+            ).exists()
+            if not ja_tem_bonus:
+                motivo = (
+                    f"Bônus de diversidade: {marco.areas_necessarias} "
+                    f"áreas no dia {data}"
+                )
+                cls.credit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo)
+
+    @classmethod
+    def _check_diversidade_bonus_reversal(cls, user, data, base_motivo=""):
+        """
+        Remove bônus de diversidade cujo requisito de áreas não é mais
+        satisfeito após a remoção da presença.
+        """
+        areas_restantes = (
+            Attendance.objects.filter(
+                user=user,
+                checked_in_at__date=data,
+                activity__area__isnull=False,
+            )
+            .values_list("activity__area", flat=True)
+            .distinct()
+            .count()
+        )
+
+        # Busca marcos que o usuário NÃO atinge mais
+        marcos_excedentes = MarcosDiversidade.objects.filter(
+            areas_necessarias__gt=areas_restantes
+        ).select_related("gamificacao_bonus")
+
+        for marco in marcos_excedentes:
+            motivo = (
+                f"Estorno de bônus de diversidade — "
+                f"áreas insuficientes no dia {data}. {base_motivo}"
+            )
+            cls.debit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo)
+
+    # ──────────────────────────────────────────────────────────────
+    # Dispatcher de eventos
+    # ──────────────────────────────────────────────────────────────
 
     @classmethod
     def process_event(cls, event_name, **kwargs):
@@ -84,59 +257,5 @@ class PointService:
         }
         handler = handlers.get(event_name)
         if not handler:
-            raise ValueError(f"Evento Desconhecido: {event_name}")
-        return handler (**kwargs)
-    
-    @classmethod
-    def _check_trilha_bonus(cls, user, trilha):
-        # Guard: trilha precisa ter bônus configurado
-        if not trilha.gamificacao_bonus:
-            return
-        if not trilha.minimo_atividades:
-            return
-
-        # Evita conceder o bônus mais de uma vez
-        ja_tem_bonus = UsuarioGamificacao.objects.filter(
-            user=user,
-            gamificacao=trilha.gamificacao_bonus
-        ).exists()
-        if ja_tem_bonus:
-            return
-
-        # Conta presenças do usuário em atividades desta trilha
-        presencas_na_trilha = Attendance.objects.filter(
-            user=user,
-            activity__trilha=trilha
-        ).count()
-
-        if presencas_na_trilha >= trilha.minimo_atividades:
-            cls.credit_gamificacao(user, trilha.gamificacao_bonus)
-    @classmethod
-    def _check_diversidade_bonus(cls, user, data):
-        # Pega todas as áreas distintas em que o usuário participou no dia
-        areas_no_dia = (
-            Attendance.objects.filter(
-                user=user,
-                checked_in_at__date=data,
-                activity__area__isnull=False  # ignora atividades sem área
-            )
-            .values_list("activity__area", flat=True)
-            .distinct()
-        )
-        total_areas = areas_no_dia.count()
-
-        if total_areas == 0:
-            return
-
-        # Verifica todos os marcos que o usuário pode ter atingido
-        marcos = MarcosDiversidade.objects.filter(
-            areas_necessarias__lte=total_areas  # marcos que o usuário já atingiu
-        ).select_related("gamificacao_bonus")
-
-        for marco in marcos:
-            ja_tem_bonus = UsuarioGamificacao.objects.filter(
-                user=user,
-                gamificacao=marco.gamificacao_bonus
-            ).exists()
-            if not ja_tem_bonus:
-                cls.credit_gamificacao(user, marco.gamificacao_bonus)
+            raise ValueError(f"Evento desconhecido: {event_name}")
+        return handler(**kwargs)

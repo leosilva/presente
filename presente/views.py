@@ -4,6 +4,7 @@ from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
 from django.views.generic.base import TemplateView
 from django.views.generic import ListView
+from django.views.generic.edit import FormView
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.contrib import messages
@@ -31,7 +32,7 @@ import os
 import csv
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Activity, Attendance, Network, Evento, UsuarioGamificacao
+from .models import Activity, Attendance, Network, Evento, UsuarioGamificacao,AttendanceRemovalLog
 from .services import PointService
 from .tables import (
     ActivityTable,
@@ -40,7 +41,7 @@ from .tables import (
     NetworkTable,
     EventoTable,
 )
-from .forms import ActivityForm, AttendancePrintConfigForm, NetworkForm, EventoForm
+from .forms import ActivityForm, AttendancePrintConfigForm, NetworkForm, EventoForm,AttendanceDeleteForm
 from .filters import ActivityFilter, AttendanceFilter, ActivityAttendanceFilter
 from .mixins import ActivityOwnerMixin
 from .utils import (
@@ -374,30 +375,80 @@ class ActivityAttendanceListView(ActivityOwnerMixin, CoreFilterView):
         allowed_actions["delete"] = "presente:attendance_delete"
         return allowed_actions
 
-class AttendanceDeleteView(CoreDeleteView):
-    model = Attendance
-    success_message = _("Presença removida com sucesso!")
-    permission_required = []
 
-    def get_queryset(self):
-        # Get the attendance and check if user is owner of the activity or superuser
+class AttendanceDeleteView(LoginRequiredMixin, FormView):
+    """
+    GET  → retorna fragmento HTML para o modal HTMX
+    POST → processa o delete com justificativa e estorna pontos
+    """
+
+    form_class = AttendanceDeleteForm
+
+    def get_template_names(self):
+        # GET: fragmento para o modal
+        # POST com erro: recarrega o fragmento com erros
+        return ["presente/includes/attendance_delete_modal.html"]
+
+    def get_activity(self):
         activity = get_object_or_404(Activity, pk=self.kwargs["activity_pk"])
-
-        # Check if user is owner or superuser
         if (
             not self.request.user.is_superuser
             and not activity.owners.filter(pk=self.request.user.pk).exists()
         ):
-            raise Http404(
-                "Você não tem permissão para remover presenças desta atividade"
-            )
+            raise Http404("Você não tem permissão para remover presenças desta atividade")
+        return activity
 
-        return Attendance.objects.filter(activity=activity)
+    def get_attendance(self):
+        activity = self.get_activity()
+        return get_object_or_404(Attendance, pk=self.kwargs["pk"], activity=activity)
 
-    def get_success_url(self):
-        return reverse_lazy(
-            "presente:activity_attendances", kwargs={"pk": self.kwargs["activity_pk"]}
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["attendance"] = self.get_attendance()
+        context["activity"] = self.get_activity()
+        return context
+
+    def form_valid(self, form):
+        attendance = self.get_attendance()
+        justificativa = form.cleaned_data["justificativa"]
+
+        activity = attendance.activity
+        user = attendance.user
+        checked_in_at = attendance.checked_in_at
+
+        # 1. Grava log ANTES de deletar (preserva snapshot)
+        AttendanceRemovalLog.objects.create(
+            removed_by=self.request.user,
+            justificativa=justificativa,
+            activity=activity,
+            attendance_user=user,
+            checked_in_at_snapshot=checked_in_at,
         )
+
+        # 2. Deleta a presença (flag evita duplo débito no signal)
+        attendance._skip_point_reversal = True
+        attendance.delete()
+
+        # 3. Estorna pontos DEPOIS do delete (contagem já reflete estado pós-remoção)
+        PointService.process_event(
+            "attendance.canceled",
+            attendance=attendance,
+            justificativa=justificativa,
+        )
+
+        messages.success(self.request, _("Presença removida com sucesso!"))
+
+        # Retorna redirect via HTMX
+        response = HttpResponse(status=204)
+        response["HX-Redirect"] = reverse(
+            "presente:activity_attendances",
+            kwargs={"pk": self.kwargs["activity_pk"]},
+        )
+        return response
+
+    def form_invalid(self, form):
+        # Recarrega o modal com os erros de validação
+        return self.render_to_response(self.get_context_data(form=form))
     
 class EventoActivityListView(CoreFilterView):
     model = Activity
