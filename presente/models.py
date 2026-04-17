@@ -365,6 +365,7 @@ class TrilhaGamificacao(models.Model):
         help_text=_("Gamificação concedida ao completar a trilha.")
     )
 
+    
     class Meta:
         verbose_name = _("Trilha")
         verbose_name_plural = _("Trilhas")
