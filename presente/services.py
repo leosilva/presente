@@ -4,27 +4,51 @@ from .models import (
     TrilhaGamificacao,
     UsuarioGamificacao,
     Activity,
-    Attendance
+    Attendance,
+    Movimentacao,
+    Nivel,
+    PerfilGamificado
 )
 
 class PointService:
     
     @classmethod
     def debit_gamificacao(cls, user, gamificacao):
-        deleted, _ = UsuarioGamificacao.objects.filter(user=user, gamificacao=gamificacao).delete() # Deleta a gamificacao do usuário e armazena dentro de deleted
-        return deleted > 0 #.delete é praticamente um booleano, então se ele retorna 1 o delete funcionou. Se retorna 0, o delete não funcionou
+        deleted, _ = UsuarioGamificacao.objects.filter(user=user, gamificacao=gamificacao).delete() # Atualiza a gamificacao do usuário e armazena dentro de deleted
+        
+        if deleted:
+            Movimentacao.objects.create(
+                user=user,
+                gamificacao=gamificacao,
+                pontos=gamificacao.pontos,
+                tipo=Movimentacao.TipoStatus.DEBIT
+            )
+        cls._update_user_level(user)    
+        return deleted > 0 #.deleted é praticamente um booleano, então se ele retorna 1 o delete funcionou. Se retorna 0, o delete não funcionou
 
     @classmethod
     def credit_gamificacao(cls, user, gamificacao):
+        status_gamificacao = UsuarioGamificacao.objects.filter(user=user, gamificacao=gamificacao).exists()
+        if status_gamificacao:
+            return False
         obj, created = UsuarioGamificacao.objects.get_or_create(
             # O get_or_create já garante se há duplicatas.
             # Pois caso o User já tenha a gamificação, ele
             # utiliza o get, caso não, ele utiliza o create
             user=user,
-            gamificacao=gamificacao
+            gamificacao=gamificacao,
         )
+            
+        if created:
+            Movimentacao.objects.create(
+                user=user,
+                gamificacao=gamificacao,
+                pontos=gamificacao.pontos,
+                tipo=Movimentacao.TipoStatus.CREDIT
+            )
+        cls._update_user_level(user)
         return created
-
+        
     @classmethod
     def get_user_gamificacoes(cls, user):
         user_gamificacao = UsuarioGamificacao.objects.filter(user=user).select_related('gamificacao') # Acessa o banco de dados e pega todas as gamificações associadas ao usuário
@@ -61,9 +85,20 @@ class PointService:
         tabelas e somar os pontos usando Sum
         '''
         return total_pontos.get('total') or 0 # Retorna o total de pontos. caso não tenha pontos, retorna 0
+    
+    @classmethod
+    def _update_user_level(cls, user):
+        total_pontos = cls.calculate_user_point(user)
+        nivel = Nivel.objects.filter(pontos_minimos__lte=total_pontos).order_by('-pontos_minimos').first()
+        PerfilGamificado.objects.filter(user=user).update(nivel=nivel)
 
     @classmethod
     def _on_user_created(cls, user):
+        PerfilGamificado.objects.create(
+            user=user,
+            nivel=None,
+            titulo=None 
+        )
         user_gamificacao = Gamificacao.objects.filter(titulo="Boas-vindas").first()
         if not user_gamificacao:
             return 
@@ -105,3 +140,4 @@ class PointService:
 
         if presencas_na_trilha >= trilha.minimo_atividades:
             cls.credit_gamificacao(user, trilha.gamificacao_bonus)
+    
