@@ -2,7 +2,7 @@ from django.db.models.signals import post_save, post_delete
 from django.dispatch import receiver
 from django.contrib.auth import get_user_model
  
-from .models import Attendance
+from .models import Attendance, Gamificacao
 from .services import PointService
  
 User = get_user_model()
@@ -25,3 +25,8 @@ def debit_pontos(sender, instance, **kwargs):
         return
  
     PointService.process_event("attendance.canceled", attendance=instance)
+
+@receiver(post_save, sender=Gamificacao)
+def atualizar_pontuacao(sender, instance, created, **kwargs):
+    if not created:
+        PointService.process_event("gamificacao.updated", gamificacao=instance)

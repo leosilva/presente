@@ -1,6 +1,7 @@
 ## ─── services.py COMPLETO (substitui o arquivo atual) ───────────────────────
 
 from django.db.models import Sum
+from django.utils import timezone
 from .models import (
     Gamificacao,
     TrilhaGamificacao,
@@ -135,6 +136,20 @@ class PointService:
         data_checkin = attendance.checked_in_at.date()
         cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo)
 
+    @classmethod
+    def _on_gamificacao_updated(cls, gamificacao):
+        atividades = Activity.objects.filter(
+            gamificacao=gamificacao,
+            start_time__lte=timezone.now(),
+            end_time__gte=timezone.now()
+            )
+        for atividade in atividades:
+            usuarios = UsuarioGamificacao.objects.filter(
+                gamificacao=gamificacao
+            )
+            for ug in usuarios:
+                cls.debit_gamificacao(ug.user, gamificacao)
+                cls.credit_gamificacao(ug.user, gamificacao)
     # ──────────────────────────────────────────────────────────────
     # Bônus de trilha
     # ──────────────────────────────────────────────────────────────
@@ -254,6 +269,7 @@ class PointService:
             "user.created": cls._on_user_created,
             "attendance.created": cls._on_attendance_created,
             "attendance.canceled": cls._on_attendance_canceled,
+            "gamificacao.updated": cls._on_gamificacao_updated
         }
         handler = handlers.get(event_name)
         if not handler:
