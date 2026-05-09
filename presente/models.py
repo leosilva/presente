@@ -521,22 +521,22 @@ class UsuarioGamificacao(models.Model):
     related_name="gamificacoes_recebidas",
     verbose_name=_("Usuário"),
     )
+
     gamificacao = models.ForeignKey(
     Gamificacao,
     on_delete=models.CASCADE,
     related_name="usuarios",
     verbose_name=_("Gamificação"),
     )
+    
     data_concedida = models.DateTimeField(
     _("Data concedida"),
     auto_now_add=True,
     )
+
     class Meta:
-        verbose_name = _("Gamificação do usuário")
-        verbose_name_plural = _("Gamificações dos usuários")
         unique_together = ["user", "gamificacao"]
-    def __str__(self):
-        return f"{self.user} — {self.gamificacao}"
+
 ## Contéudo do model Evento
 class Campus(models.Model):
     nome = models.CharField(
@@ -570,14 +570,14 @@ class Evento(models.Model):
         related_name="eventos"
     )
 
+    tipo = models.CharField(
+    _("Tipo"),
+    max_length=3,
+    choices=TipoEvento.choices
+)
+
     data_inicio = models.DateTimeField(_("Data de Início"))
     data_fim = models.DateTimeField(_("Data de Fim"))
-
-    tipo = models.CharField(
-        _("Tipo"),
-        max_length=3,
-        choices=TipoEvento.choices
-    )
 
     descricao = models.TextField(
         _("Descrição"),
@@ -606,11 +606,11 @@ class PointHistory(models.Model):
     Garante que o histórico seja preservado mesmo quando UsuarioGamificacao
     for removido.
     """
- 
+
     class TipoMovimento(models.TextChoices):
         CREDITO = "CRD", _("Crédito")
         DEBITO = "DEB", _("Débito")
- 
+
     user = models.ForeignKey(
         User,
         on_delete=models.CASCADE,
@@ -638,14 +638,66 @@ class PointHistory(models.Model):
         help_text=_("Descrição automática do motivo do movimento."),
     )
     criado_em = models.DateTimeField(_("Criado em"), auto_now_add=True)
- 
+
     class Meta:
         verbose_name = _("Histórico de Pontos")
         verbose_name_plural = _("Histórico de Pontos")
         ordering = ["-criado_em"]
- 
+
     def __str__(self):
         sinal = "+" if self.tipo == self.TipoMovimento.CREDITO else "-"
         return f"{self.user} | {sinal}{self.pontos}pts | {self.gamificacao}"
- 
- 
+
+
+class Nivel(models.Model):
+    nome = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Nome"
+    )
+
+    pontos_minimos = models.PositiveIntegerField(
+        _("Pontos mínimos"),
+        default=0,
+        unique=True,
+        help_text="Quantidade de pontos mínimos para estar nesse nível",
+    )
+
+    def __str__(self):
+        return self.nome
+
+    class Meta:
+        ordering = ['pontos_minimos']
+        verbose_name = "Nível"
+        verbose_name_plural = "Níveis"
+
+class PerfilGamificado(models.Model):
+    user = models.OneToOneField(
+        User,
+        on_delete=models.CASCADE,
+        related_name="perfil_gamificado",
+        verbose_name=_("Usuário"),
+    )
+
+    nivel = models.ForeignKey(
+        Nivel,
+        on_delete=models.SET_NULL,
+        related_name="nivel_perfil",
+        verbose_name=_("Nível"),
+        null=True,
+        blank=True,
+    )
+
+    titulo = models.CharField(
+        max_length=155,
+        verbose_name=_("Titulo"),
+        blank=True,
+        null=True,
+    )
+
+    def __str__(self):
+        return f"{self.user} - {self.nivel}"
+
+    class Meta:
+        verbose_name="Perfil Gamificado"
+        verbose_name_plural="Perfis Gamificados"

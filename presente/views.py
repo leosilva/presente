@@ -255,12 +255,12 @@ class CheckInView(LoginRequiredMixin, TemplateView):
         token = kwargs.get("token")
         context["success"] = False
 
-        activity_id = verify_checkin_token(token, 300)
+        activity_id = verify_checkin_token(token, 300) #
 
         if not activity_id:
             context["error"] = _("QR Code inválido ou expirado.")
         else:
-            activity = get_object_or_404(Activity, id=activity_id)
+            activity = get_object_or_404(Activity, id=activity_id) #
             client_ip = get_client_ip(self.request)
 
             context["activity"] = activity

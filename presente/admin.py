@@ -1,5 +1,5 @@
 from django.contrib import admin
-from .models import Activity, Attendance, Network, TipoGamificacao,TrilhaGamificacao,Gamificacao,UsuarioGamificacao,Evento,Campus,Area,MarcosDiversidade
+from .models import Activity, Attendance, Network, TipoGamificacao, TrilhaGamificacao, Gamificacao, UsuarioGamificacao, Evento, Campus, Area, MarcosDiversidade, Nivel, PerfilGamificado
 
 
 @admin.register(Network)
@@ -87,6 +87,7 @@ class EventoAdmin(admin.ModelAdmin):
     search_fields = ("nome",)
 
 admin.site.register(Campus)
+
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
     list_display = ['nome', 'descricao']
@@ -96,3 +97,11 @@ class AreaAdmin(admin.ModelAdmin):
 class MarcosDiversidadeAdmin(admin.ModelAdmin):
     list_display = ['areas_necessarias', 'gamificacao_bonus', 'descricao']
     ordering = ['areas_necessarias']
+
+@admin.register(Nivel)
+class NivelAdmin(admin.ModelAdmin):
+    list_display = ("nome", "pontos_minimos")
+
+@admin.register(PerfilGamificado)
+class PerfilGamificadoAdmin(admin.ModelAdmin):
+    list_display = ("user", "nivel", "titulo")

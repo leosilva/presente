@@ -10,6 +10,8 @@ from .models import (
     Attendance,
     MarcosDiversidade,
     PointHistory,
+    Nivel,
+    PerfilGamificado
 )
 
 
@@ -34,6 +36,7 @@ class PointService:
                 pontos=-gamificacao.pontos,
                 motivo=motivo or f"Estorno automático — {gamificacao.titulo}",
             )
+            cls._update_user_level(user)
 
         return deleted > 0
 
@@ -52,6 +55,7 @@ class PointService:
                 pontos=gamificacao.pontos,
                 motivo=motivo or f"Concessão automática — {gamificacao.titulo}",
             )
+            cls._update_user_level(user)
 
         return created
 
@@ -78,6 +82,10 @@ class PointService:
 
     @classmethod
     def _on_user_created(cls, user):
+        PerfilGamificado.objects.update_or_create(
+            user=user,
+            defaults={'nivel': None, 'titulo': None}
+        )
         boas_vindas = Gamificacao.objects.filter(titulo="Boas-vindas").first()
         if not boas_vindas:
             return
@@ -150,6 +158,7 @@ class PointService:
             for ug in usuarios:
                 cls.debit_gamificacao(ug.user, gamificacao)
                 cls.credit_gamificacao(ug.user, gamificacao)
+
     # ──────────────────────────────────────────────────────────────
     # Bônus de trilha
     # ──────────────────────────────────────────────────────────────
@@ -258,6 +267,19 @@ class PointService:
                 f"áreas insuficientes no dia {data}. {base_motivo}"
             )
             cls.debit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo)
+
+    # ──────────────────────────────────────────────────────────────
+    # Atualização de nível
+    # ──────────────────────────────────────────────────────────────
+
+    @classmethod
+    def _update_user_level(cls, user):
+        total_pontos = cls.calculate_user_point(user)
+        nivel = Nivel.objects.filter(pontos_minimos__lte=total_pontos).order_by('-pontos_minimos').first()
+        PerfilGamificado.objects.update_or_create(
+            user=user,
+            defaults={'nivel': nivel}
+        )
 
     # ──────────────────────────────────────────────────────────────
     # Dispatcher de eventos
