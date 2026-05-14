@@ -1,5 +1,22 @@
 from django.contrib import admin
-from .models import Activity, Attendance, Network, TipoGamificacao, TrilhaGamificacao, Gamificacao, UsuarioGamificacao, Evento, Campus, Area, MarcosDiversidade, Nivel, PerfilGamificado
+from .models import (
+    Activity,
+    Attendance,
+    Network,
+    TipoGamificacao,
+    TrilhaGamificacao,
+    Gamificacao,
+    UsuarioGamificacao,
+    Evento,
+    Campus,
+    Area,
+    MarcosDiversidade,
+    Nivel,
+    PerfilGamificado,
+    PointHistory,
+    Recompensa,
+    ResgateRecompensa
+    )
 
 
 @admin.register(Network)
@@ -105,3 +122,22 @@ class NivelAdmin(admin.ModelAdmin):
 @admin.register(PerfilGamificado)
 class PerfilGamificadoAdmin(admin.ModelAdmin):
     list_display = ("user", "nivel", "titulo")
+@admin.register(PointHistory)
+class PointHistoryAdmin(admin.ModelAdmin):
+    list_display = ["user", "tipo", "pontos", "gamificacao", "motivo", "criado_em"]
+    list_filter = ["tipo", "criado_em"]
+    search_fields = ["user__username", "motivo"]
+    readonly_fields = ["user", "gamificacao", "tipo", "pontos", "motivo", "criado_em"]
+    date_hierarchy = "criado_em"
+@admin.register(Recompensa)
+class RecompensaAdmin(admin.ModelAdmin):
+    list_display = ["nome", "evento", "pontos_necessarios", "quantidade_disponivel", "data_validade", "ativo", "disponivel"]
+    list_filter = ["ativo", "evento"]
+    search_fields = ["nome"]
+
+@admin.register(ResgateRecompensa)
+class ResgateRecompensaAdmin(admin.ModelAdmin):
+    list_display = ["usuario", "recompensa", "pontos_gastos", "resgatado_em"]
+    list_filter = ["recompensa__evento"]
+    search_fields = ["usuario__username", "recompensa__nome"]
+    readonly_fields = ["usuario", "recompensa", "pontos_gastos", "resgatado_em"]

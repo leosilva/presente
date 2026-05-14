@@ -1,7 +1,8 @@
-## ─── services.py COMPLETO (substitui o arquivo atual) ───────────────────────
-
-from django.db.models import Sum
-from django.utils import timezone
+from django.db.models import Sum 
+from django.db import transaction
+from django.utils import timezone 
+from django.core.exceptions import ValidationError
+from django.utils.translation import gettext_lazy as _
 from .models import (
     Gamificacao,
     TrilhaGamificacao,
@@ -11,7 +12,9 @@ from .models import (
     MarcosDiversidade,
     PointHistory,
     Nivel,
-    PerfilGamificado
+    PerfilGamificado,
+    Recompensa,
+    ResgateRecompensa
 )
 
 
@@ -71,10 +74,12 @@ class PointService:
 
     @classmethod
     def calculate_user_point(cls, user):
-        total = UsuarioGamificacao.objects.filter(user=user).aggregate(
-            total=Sum("gamificacao__pontos")
-        )
-        return total.get("total") or 0
+        # PointHistory é a fonte única de saldo — soma todos os créditos
+        # (positivos) e débitos (negativos) registrados para o usuário.
+        total = PointHistory.objects.filter(user=user).aggregate(
+            total=Sum("pontos")
+        ).get("total") or 0
+        return total
 
     # ──────────────────────────────────────────────────────────────
     # Handlers de eventos
@@ -297,3 +302,181 @@ class PointService:
         if not handler:
             raise ValueError(f"Evento desconhecido: {event_name}")
         return handler(**kwargs)
+class ResgateService:
+    """
+    Serviço responsável por toda a lógica de resgate de recompensas na loja.
+    Segue o mesmo padrão do PointService: métodos de classe organizados
+    em operações atômicas, consultas e handlers de eventos.
+    """
+ 
+    # ──────────────────────────────────────────────────────────────
+    # Operação principal de resgate
+    # ──────────────────────────────────────────────────────────────
+ 
+    @classmethod
+    @transaction.atomic                                    # Garante que todas as operações abaixo ocorram em uma única transação — se qualquer uma falhar, tudo é revertido
+    def resgatar(cls, user, recompensa):
+        """
+        Realiza o resgate de uma recompensa para o usuário.
+        Valida pontos, estoque e validade antes de confirmar.
+        Lança ValidationError com mensagem descritiva em caso de falha.
+        """
+        recompensa = Recompensa.objects.select_for_update().get(pk=recompensa.pk)
+ 
+        cls._validar_recompensa_disponivel(recompensa)     # Verifica se a recompensa está ativa, com estoque e dentro da validade
+        cls._validar_pontos_suficientes(user, recompensa)  # Verifica se o usuário tem pontos suficientes para o resgate
+        cls._validar_resgate_duplicado(user, recompensa)   # Verifica se o usuário ainda não resgatou esta recompensa
+ 
+ 
+        resgate = ResgateRecompensa.objects.create(        # Cria o registro do resgate vinculando usuário e recompensa
+            usuario=user,                                  # Usuário que está realizando o resgate
+            recompensa=recompensa,                         # Recompensa que está sendo resgatada
+            pontos_gastos=recompensa.pontos_necessarios,   # Snapshot dos pontos necessários no momento do resgate
+        )
+ 
+        recompensa.quantidade_disponivel -= 1              # Decrementa o estoque da recompensa em uma unidade
+        recompensa.save(update_fields=["quantidade_disponivel"])  # Salva apenas o campo de estoque para evitar sobrescrita de outros campos
+ 
+        cls._debitar_pontos(user, recompensa)              # Registra o débito dos pontos no PointHistory para manter o histórico completo
+ 
+        return resgate                                     # Retorna o objeto de resgate criado para uso na view ou serializer
+ 
+    # ──────────────────────────────────────────────────────────────
+    # Validações
+    # ──────────────────────────────────────────────────────────────
+ 
+    @classmethod
+    def _validar_recompensa_disponivel(cls, recompensa):
+        """
+        Verifica se a recompensa pode ser resgatada no momento.
+        Checa ativo, estoque e data de validade.
+        """
+ 
+        if not recompensa.ativo:                           # Verifica se a recompensa está marcada como ativa no sistema
+            raise ValidationError(                         # Lança erro de validação impedindo o resgate
+                _("Esta recompensa não está mais disponível.")  # Mensagem traduzível exibida ao usuário
+            )
+ 
+        if recompensa.quantidade_disponivel <= 0:          # Verifica se ainda há unidades em estoque
+            raise ValidationError(                         # Lança erro de validação impedindo o resgate
+                _("Esta recompensa está esgotada.")        # Mensagem traduzível exibida ao usuário
+            )
+ 
+        if (                                               # Inicia verificação de validade apenas se a data foi preenchida
+            recompensa.data_validade                       # Confere se o campo data_validade foi definido (não é nulo/blank)
+            and recompensa.data_validade < timezone.now().date()  # Compara a data de validade com a data atual
+        ):
+            raise ValidationError(                         # Lança erro de validação impedindo o resgate
+                _("O prazo para resgatar esta recompensa expirou.")  # Mensagem traduzível exibida ao usuário
+            )
+ 
+    @classmethod
+    def _validar_pontos_suficientes(cls, user, recompensa):
+        """
+        Verifica se o usuário possui pontos suficientes para o resgate.
+        """
+ 
+        pontos_usuario = PointService.calculate_user_point(user)  # Calcula o total de pontos atual do usuário via PointService
+ 
+        if pontos_usuario < recompensa.pontos_necessarios: # Compara os pontos do usuário com o custo da recompensa
+            raise ValidationError(                         # Lança erro de validação impedindo o resgate
+                _(
+                    f"Pontos insuficientes. Você possui {pontos_usuario} pts "  # Mostra ao usuário quantos pontos ele tem
+                    f"e esta recompensa custa {recompensa.pontos_necessarios} pts."  # Mostra ao usuário quantos pontos a recompensa custa
+                )
+            )
+ 
+    @classmethod
+    def _validar_resgate_duplicado(cls, user, recompensa):
+        """
+        Impede que o mesmo usuário resgate a mesma recompensa mais de uma vez.
+        """
+ 
+        ja_resgatou = ResgateRecompensa.objects.filter(    # Consulta o banco verificando se já existe um resgate para este par usuário/recompensa
+            usuario=user,                                  # Filtra pelo usuário que está tentando resgatar
+            recompensa=recompensa,                         # Filtra pela recompensa específica
+        ).exists()                                         # Retorna True se já existir ao menos um registro
+ 
+        if ja_resgatou:                                    # Se o usuário já resgatou esta recompensa anteriormente
+            raise ValidationError(                         # Lança erro de validação impedindo novo resgate
+                _("Você já resgatou esta recompensa.")     # Mensagem traduzível exibida ao usuário
+            )
+ 
+    # ──────────────────────────────────────────────────────────────
+    # Débito de pontos
+    # ──────────────────────────────────────────────────────────────
+ 
+    @classmethod
+    def _debitar_pontos(cls, user, recompensa):
+        """
+        Registra o débito dos pontos no PointHistory.
+        Não remove UsuarioGamificacao — apenas cria um registro negativo
+        no histórico, mantendo o saldo real calculado pela soma do histórico.
+        """
+ 
+        PointHistory.objects.create(                       # Cria um registro imutável de débito no histórico de pontos
+            user=user,                                     # Usuário que teve os pontos debitados
+            gamificacao=None,  # Débito de resgate não tem gamificação associada
+            tipo=PointHistory.TipoMovimento.DEBITO,        # Define o tipo do movimento como débito
+            pontos=-recompensa.pontos_necessarios,         # Valor negativo representando os pontos gastos no resgate
+            motivo=f"Resgate de recompensa: {recompensa.nome}",  # Descrição automática do motivo do débito
+        )
+        PointService._update_user_level(user)
+ 
+    # ──────────────────────────────────────────────────────────────
+    # Consultas
+    # ──────────────────────────────────────────────────────────────
+ 
+    @classmethod
+    def get_resgates_usuario(cls, user):
+        """
+        Retorna todos os resgates realizados por um usuário,
+        com os dados da recompensa carregados em uma única query.
+        """
+ 
+        return ResgateRecompensa.objects.filter(           # Filtra os resgates pelo usuário informado
+            usuario=user                                   # Parâmetro de filtro: usuário específico
+        ).select_related("recompensa")                     # Carrega os dados da recompensa em JOIN para evitar queries N+1
+ 
+    @classmethod
+    def get_recompensas_disponiveis(cls, evento):
+        """
+        Retorna todas as recompensas disponíveis para resgate em um evento,
+        filtrando ativas, com estoque e dentro da validade.
+        """
+ 
+        from django.db.models import Q                     # Importa Q para construir consultas complexas com OR/AND
+ 
+        return Recompensa.objects.filter(                  # Filtra as recompensas do banco pelo evento informado
+            evento=evento,                                 # Restringe ao evento específico
+            ativo=True,                                    # Apenas recompensas marcadas como ativas
+            quantidade_disponivel__gt=0,                   # Apenas recompensas com estoque maior que zero
+        ).filter(                                          # Aplica segundo filtro para a lógica de validade
+            Q(data_validade__isnull=True)                  # Inclui recompensas sem data de validade definida
+            | Q(data_validade__gte=timezone.now().date())  # OU recompensas cuja validade ainda não expirou
+        ).order_by("pontos_necessarios")                   # Ordena da recompensa mais barata para a mais cara
+ 
+    # ──────────────────────────────────────────────────────────────
+    # Dispatcher de eventos (mesmo padrão do PointService)
+    # ──────────────────────────────────────────────────────────────
+ 
+    @classmethod
+    def process_event(cls, event_name, **kwargs):          # Método dispatcher que roteia eventos para seus handlers, igual ao PointService
+        """
+        Dispatcher de eventos do ResgateService.
+        Permite desacoplar chamadas diretas ao serviço usando nomes de eventos.
+        """
+ 
+        handlers = {                                       # Dicionário mapeando nome do evento para o método handler correspondente
+            "recompensa.resgatada": cls.resgatar,          # Evento disparado quando um usuário solicita um resgate
+        }
+ 
+        handler = handlers.get(event_name)                 # Busca o handler correspondente ao evento recebido
+ 
+        if not handler:                                    # Se o evento não estiver registrado no dicionário
+            raise ValueError(                              # Lança erro informando que o evento é desconhecido
+                f"Evento desconhecido: {event_name}"       # Mensagem de erro com o nome do evento inválido
+            )
+ 
+        return handler(**kwargs)                           # Chama o handler passando os argumentos recebidos via kwargs
+ 

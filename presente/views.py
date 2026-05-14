@@ -32,7 +32,7 @@ import os
 import csv
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Activity, Attendance, Network, Evento, UsuarioGamificacao,AttendanceRemovalLog
+from .models import Activity, Attendance, Network, Evento, UsuarioGamificacao,AttendanceRemovalLog,PointHistory
 from .services import PointService
 from .tables import (
     ActivityTable,
@@ -318,14 +318,16 @@ class MyAttendancesView(CoreFilterView):
         )
 @login_required
 def minhas_pontuacoes(request):
-    gamificacoes_usuario = PointService.get_user_gamificacoes(request.user)
+    historico = PointHistory.objects.filter(
+        user=request.user
+    ).select_related("gamificacao").order_by("-criado_em")
+
     total_pontos = PointService.calculate_user_point(request.user)
 
     context = {
-        "gamificacoes_usuario": gamificacoes_usuario,
+        "historico": historico,
         "total_pontos": total_pontos,
     }
-
     return render(request, "presente/minhas_pontuacoes.html", context)
 class RankingListView(ListView):
     model = User
@@ -337,7 +339,7 @@ class RankingListView(ListView):
             User.objects
             .annotate(
                 total_pontos=Coalesce(
-                    Sum("gamificacoes_recebidas__gamificacao__pontos"),
+                    Sum("point_history__pontos"),
                     0
                 )
             )

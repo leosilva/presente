@@ -622,6 +622,8 @@ class PointHistory(models.Model):
         on_delete=models.CASCADE,
         related_name="point_history",
         verbose_name=_("Gamificação"),
+        null = True,
+        blank = True
     )
     tipo = models.CharField(
         _("Tipo"),
@@ -646,7 +648,8 @@ class PointHistory(models.Model):
 
     def __str__(self):
         sinal = "+" if self.tipo == self.TipoMovimento.CREDITO else "-"
-        return f"{self.user} | {sinal}{self.pontos}pts | {self.gamificacao}"
+        gamificacao_str = self.gamificacao or "Resgate de recompensa"
+        return f"{self.user} | {sinal}{self.pontos}pts | {gamificacao_str}"
 
 
 class Nivel(models.Model):
@@ -701,3 +704,72 @@ class PerfilGamificado(models.Model):
     class Meta:
         verbose_name="Perfil Gamificado"
         verbose_name_plural="Perfis Gamificados"
+class Recompensa(models.Model):
+    evento = models.ForeignKey(
+        "Evento",
+        on_delete=models.CASCADE,
+        related_name="recompensas",
+        verbose_name=_("Evento"),
+        help_text=_("Evento ao qual esta recompensa pertence.")
+    )
+    nome = models.CharField(_("Nome"), max_length=255)
+    descricao = models.TextField(_("Descrição"), blank=True)
+    pontos_necessarios = models.PositiveIntegerField(
+        _("Pontos necessários"),
+        help_text=_("Quantidade de pontos para resgatar esta recompensa.")
+    )
+    quantidade_disponivel = models.PositiveIntegerField(
+        _("Quantidade disponível"),
+        help_text=_("Estoque disponível para resgate.")
+    )
+    data_validade = models.DateField(
+        _("Data de validade"),
+        null=True,
+        blank=True
+    )
+    ativo = models.BooleanField(_("Ativo"), default=True)
+    criado_em = models.DateTimeField(_("Criado em"), auto_now_add=True)
+
+    @property
+    def disponivel(self):
+        if not self.ativo or self.quantidade_disponivel <= 0:
+            return False
+        if self.data_validade and self.data_validade < timezone.now().date():
+            return False
+        return True
+
+    class Meta:
+        verbose_name = _("Recompensa")
+        verbose_name_plural = _("Recompensas")
+        ordering = ["pontos_necessarios"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.pontos_necessarios} pts)"
+
+class ResgateRecompensa(models.Model):
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="resgates",
+        verbose_name=_("Usuário"),
+    )
+    recompensa = models.ForeignKey(
+        Recompensa,
+        on_delete=models.PROTECT,
+        related_name="resgates",
+        verbose_name=_("Recompensa"),
+    )
+    pontos_gastos = models.PositiveIntegerField(
+        _("Pontos gastos"),
+        help_text=_("Snapshot dos pontos no momento do resgate.")
+    )
+    resgatado_em = models.DateTimeField(_("Resgatado em"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Resgate de Recompensa")
+        verbose_name_plural = _("Resgates de Recompensas")
+        ordering = ["-resgatado_em"]
+
+    def __str__(self):
+        return f"{self.usuario} → {self.recompensa.nome}"
+
