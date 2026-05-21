@@ -328,9 +328,9 @@ class TrocaService:
         # Bloqueia todos os brindes da troca de uma vez para evitar race condition
         ids_brindes = [item["brinde"].pk for item in itens]
         brindes_locked = {
-            b.pk: b
-            for b in Brinde.objects.select_for_update().filter(pk__in=ids_brindes)
-        }
+        b.pk: b
+        for b in Brinde.objects.filter(pk__in=ids_brindes)
+    }
 
         # Substitui os brindes do input pelos registros bloqueados do banco
         itens_validados = [
