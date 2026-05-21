@@ -14,9 +14,10 @@ from .models import (
     Nivel,
     PerfilGamificado,
     PointHistory,
-    Recompensa,
-    ResgateRecompensa
-    )
+    Brinde,
+    Troca,
+    ItemRecompensa,
+)
 
 
 @admin.register(Network)
@@ -32,12 +33,7 @@ class NetworkAdmin(admin.ModelAdmin):
 
 @admin.register(Activity)
 class ActivityAdmin(admin.ModelAdmin):
-    list_display = [
-        "title",
-        "start_time",
-        "end_time",
-        "qr_timeout",
-    ]
+    list_display = ["title", "start_time", "end_time", "qr_timeout"]
     list_filter = ["tags"]
     search_fields = ["title"]
     date_hierarchy = "start_time"
@@ -74,54 +70,68 @@ class AttendanceAdmin(admin.ModelAdmin):
     network_display.short_description = "Rede"
 
 
-
 @admin.register(TrilhaGamificacao)
 class TrilhaGamificacaoAdmin(admin.ModelAdmin):
     search_fields = ("name",)
+
+
 @admin.register(TipoGamificacao)
 class TipoGamificacaoAdmin(admin.ModelAdmin):
     list_display = ("tipo", "trilha")
     list_filter = ("tipo", "trilha")
+
+
 @admin.register(Gamificacao)
 class GamificacaoAdmin(admin.ModelAdmin):
     list_display = ("titulo", "trilha", "tipo", "pontos")
     list_filter = ("trilha", "tipo")
     search_fields = ("titulo",)
 
+
 @admin.register(UsuarioGamificacao)
 class UsuarioGamificacaoAdmin(admin.ModelAdmin):
     list_display = ("user", "gamificacao", "data_concedida")
     list_filter = ("gamificacao", "data_concedida")
     search_fields = ("user__username", "gamificacao__titulo")
+
     def pontos(self, obj):
         return obj.gamificacao.pontos
 
     pontos.short_description = "Pontos"
+
+
 @admin.register(Evento)
 class EventoAdmin(admin.ModelAdmin):
     list_display = ("nome", "tipo", "data_inicio", "data_fim")
     list_filter = ("tipo", "campus")
     search_fields = ("nome",)
 
+
 admin.site.register(Campus)
+
 
 @admin.register(Area)
 class AreaAdmin(admin.ModelAdmin):
-    list_display = ['nome', 'descricao']
-    search_fields = ['nome']
+    list_display = ["nome", "descricao"]
+    search_fields = ["nome"]
+
 
 @admin.register(MarcosDiversidade)
 class MarcosDiversidadeAdmin(admin.ModelAdmin):
-    list_display = ['areas_necessarias', 'gamificacao_bonus', 'descricao']
-    ordering = ['areas_necessarias']
+    list_display = ["areas_necessarias", "gamificacao_bonus", "descricao"]
+    ordering = ["areas_necessarias"]
+
 
 @admin.register(Nivel)
 class NivelAdmin(admin.ModelAdmin):
     list_display = ("nome", "pontos_minimos")
 
+
 @admin.register(PerfilGamificado)
 class PerfilGamificadoAdmin(admin.ModelAdmin):
     list_display = ("user", "nivel", "titulo")
+
+
 @admin.register(PointHistory)
 class PointHistoryAdmin(admin.ModelAdmin):
     list_display = ["user", "tipo", "pontos", "gamificacao", "motivo", "criado_em"]
@@ -129,15 +139,31 @@ class PointHistoryAdmin(admin.ModelAdmin):
     search_fields = ["user__username", "motivo"]
     readonly_fields = ["user", "gamificacao", "tipo", "pontos", "motivo", "criado_em"]
     date_hierarchy = "criado_em"
-@admin.register(Recompensa)
-class RecompensaAdmin(admin.ModelAdmin):
+
+
+@admin.register(Brinde)
+class BrindeAdmin(admin.ModelAdmin):
     list_display = ["nome", "evento", "pontos_necessarios", "quantidade_disponivel", "data_validade", "ativo", "disponivel"]
     list_filter = ["ativo", "evento"]
     search_fields = ["nome"]
 
-@admin.register(ResgateRecompensa)
-class ResgateRecompensaAdmin(admin.ModelAdmin):
-    list_display = ["usuario", "recompensa", "pontos_gastos", "resgatado_em"]
-    list_filter = ["recompensa__evento"]
-    search_fields = ["usuario__username", "recompensa__nome"]
-    readonly_fields = ["usuario", "recompensa", "pontos_gastos", "resgatado_em"]
+
+class ItemRecompensaInline(admin.TabularInline):
+    model = ItemRecompensa
+    extra = 0
+    readonly_fields = ["brinde", "quantidade", "pontos_unitarios", "pontos_total"]
+    can_delete = False
+
+
+@admin.register(Troca)
+class TrocaAdmin(admin.ModelAdmin):
+    list_display = ["id", "usuario", "pontos_gastos", "data", "total_itens"]
+    list_filter = ["data"]
+    search_fields = ["usuario__username"]
+    readonly_fields = ["usuario", "pontos_gastos", "data"]
+    inlines = [ItemRecompensaInline]
+
+    def total_itens(self, obj):
+        return obj.itens.count()
+
+    total_itens.short_description = "Itens"
