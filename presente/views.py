@@ -2,19 +2,20 @@ from multiprocessing import context
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Sum
-from django.views.generic.base import TemplateView
+from django.views.generic.base import TemplateView,View
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
 from django.db.models.functions import Coalesce
 from django.contrib.auth import get_user_model
 from django.contrib import messages
-from django.shortcuts import get_object_or_404,render
+from django.shortcuts import get_object_or_404,render,redirect
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from django.http import Http404
 from django.urls import reverse, reverse_lazy
 from django_filters.views import FilterView
 from django_weasyprint import WeasyTemplateResponseMixin
+from django.core.exceptions import ValidationError
 from core.mixins import PageTitleMixin, SuperuserRequiredMixin
 from core.views import (
     CoreListView,
@@ -32,8 +33,18 @@ import os
 import csv
 from django.conf import settings
 from django.http import HttpResponse
-from .models import Activity, Attendance, Network, Evento, UsuarioGamificacao,AttendanceRemovalLog
-from .services import PointService
+from .models import (
+    Activity,
+    Attendance,
+    Network,
+    Evento,
+    UsuarioGamificacao,
+    AttendanceRemovalLog,
+    PointHistory,
+    Brinde,
+    Troca
+    )
+from .services import PointService,TrocaService
 from .tables import (
     ActivityTable,
     AttendanceTable,
@@ -318,14 +329,16 @@ class MyAttendancesView(CoreFilterView):
         )
 @login_required
 def minhas_pontuacoes(request):
-    gamificacoes_usuario = PointService.get_user_gamificacoes(request.user)
+    historico = PointHistory.objects.filter(
+        user=request.user
+    ).select_related("gamificacao").order_by("-criado_em")
+
     total_pontos = PointService.calculate_user_point(request.user)
 
     context = {
-        "gamificacoes_usuario": gamificacoes_usuario,
+        "historico": historico,
         "total_pontos": total_pontos,
     }
-
     return render(request, "presente/minhas_pontuacoes.html", context)
 class RankingListView(ListView):
     model = User
@@ -337,7 +350,7 @@ class RankingListView(ListView):
             User.objects
             .annotate(
                 total_pontos=Coalesce(
-                    Sum("gamificacoes_recebidas__gamificacao__pontos"),
+                    Sum("point_history__pontos"),
                     0
                 )
             )
@@ -792,3 +805,166 @@ class EventoUpdateView(SuperuserRequiredMixin, CoreUpdateView):
 class EventoDeleteView(SuperuserRequiredMixin, CoreDeleteView):
     model = Evento
     page_title = _("Eventos")
+# ──────────────────────────────────────────────────────────────
+# Helpers de carrinho (armazenado na sessão)
+# ──────────────────────────────────────────────────────────────
+ 
+def get_carrinho(request):
+    """Retorna o carrinho da sessão como dict {brinde_pk: quantidade}."""
+    return request.session.get("carrinho", {})
+ 
+ 
+def set_carrinho(request, carrinho):
+    """Salva o carrinho na sessão e marca como modificado."""
+    request.session["carrinho"] = carrinho
+    request.session.modified = True
+ 
+ 
+def limpar_carrinho(request):
+    """Remove o carrinho da sessão."""
+    request.session.pop("carrinho", None)
+    request.session.modified = True
+ 
+ 
+def carrinho_para_itens(carrinho):
+    """
+    Converte o carrinho {brinde_pk: quantidade} em uma lista de objetos Brinde
+    com a quantidade anotada, para uso no template e no TrocaService.
+    Ignora brindes que não existem mais no banco.
+    """
+    pks = [int(pk) for pk in carrinho.keys()]
+    brindes = {b.pk: b for b in Brinde.objects.filter(pk__in=pks)}
+    itens = []
+    for pk, quantidade in carrinho.items():
+        brinde = brindes.get(int(pk))
+        if brinde:
+            itens.append({"brinde": brinde, "quantidade": quantidade})
+    return itens
+ 
+ 
+# ──────────────────────────────────────────────────────────────
+# Loja — listagem de brindes disponíveis + carrinho lateral
+# ──────────────────────────────────────────────────────────────
+ 
+class LojaView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/loja.html"
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+ 
+        # Filtra pelo evento ativo mais recente que tenha brindes
+        evento = (
+            Evento.objects.filter(brindes__ativo=True)
+            .order_by("-data_inicio")
+            .first()
+        )
+ 
+        brindes = []
+        if evento:
+            brindes = TrocaService.get_brindes_disponiveis(evento)
+ 
+        carrinho = get_carrinho(self.request)
+        itens_carrinho = carrinho_para_itens(carrinho)
+        total_carrinho = sum(
+            item["brinde"].pontos_necessarios * item["quantidade"]
+            for item in itens_carrinho
+        )
+ 
+        context["evento"] = evento
+        context["brindes"] = brindes
+        context["itens_carrinho"] = itens_carrinho
+        context["total_carrinho"] = total_carrinho
+        context["total_pontos"] = PointService.calculate_user_point(self.request.user)
+        context["pontos_apos_troca"] = context["total_pontos"] - total_carrinho
+        return context
+ 
+ 
+# ──────────────────────────────────────────────────────────────
+# Adicionar brinde ao carrinho (HTMX ou redirect)
+# ──────────────────────────────────────────────────────────────
+ 
+class CarrinhoAdicionarView(LoginRequiredMixin, View):
+    def post(self, request):
+        brinde_pk = request.POST.get("brinde_pk")
+        if not brinde_pk:
+            messages.error(request, _("Brinde não informado."))
+            return redirect("presente:loja")
+ 
+        brinde = get_object_or_404(Brinde, pk=brinde_pk)
+ 
+        if not brinde.disponivel:
+            messages.error(request, _(f"'{brinde.nome}' não está disponível."))
+            return redirect("presente:loja")
+ 
+        carrinho = get_carrinho(request)
+        quantidade_atual = carrinho.get(str(brinde_pk), 0)
+ 
+        # Verifica se ainda há estoque para adicionar mais uma unidade
+        if quantidade_atual >= brinde.quantidade_disponivel:
+            messages.warning(request, _(f"Estoque máximo atingido para '{brinde.nome}'."))
+            return redirect("presente:loja")
+ 
+        carrinho[str(brinde_pk)] = quantidade_atual + 1
+        set_carrinho(request, carrinho)
+ 
+        messages.success(request, _(f"'{brinde.nome}' adicionado ao carrinho."))
+        return redirect("presente:loja")
+ 
+ 
+# ──────────────────────────────────────────────────────────────
+# Remover brinde do carrinho
+# ──────────────────────────────────────────────────────────────
+ 
+class CarrinhoRemoverView(LoginRequiredMixin, View):
+    def post(self, request, brinde_pk):
+        carrinho = get_carrinho(request)
+ 
+        if str(brinde_pk) in carrinho:
+            del carrinho[str(brinde_pk)]
+            set_carrinho(request, carrinho)
+            messages.success(request, _("Item removido do carrinho."))
+        
+        return redirect("presente:loja")
+ 
+ 
+# ──────────────────────────────────────────────────────────────
+# Confirmar troca
+# ──────────────────────────────────────────────────────────────
+ 
+class TrocaConfirmarView(LoginRequiredMixin, View):
+    def post(self, request):
+        carrinho = get_carrinho(request)
+ 
+        if not carrinho:
+            messages.error(request, _("Seu carrinho está vazio."))
+            return redirect("presente:loja")
+ 
+        itens = carrinho_para_itens(carrinho)
+ 
+        try:
+            troca = TrocaService.realizar_troca(user=request.user, itens=itens)
+            limpar_carrinho(request)
+            messages.success(
+                request,
+                _(f"Troca #{troca.pk} realizada com sucesso! {troca.pontos_gastos} pts descontados.")
+            )
+            return redirect("presente:troca_historico")
+ 
+        except ValidationError as e:
+            messages.error(request, e.message)
+            return redirect("presente:loja")
+ 
+ 
+# ──────────────────────────────────────────────────────────────
+# Histórico de trocas do usuário
+# ──────────────────────────────────────────────────────────────
+ 
+class TrocaHistoricoView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/troca_historico.html"
+ 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        context["trocas"] = TrocaService.get_trocas_usuario(self.request.user)
+        context["total_pontos"] = PointService.calculate_user_point(self.request.user)
+        return context
+ 
