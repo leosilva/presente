@@ -7,7 +7,7 @@ from django.urls import reverse_lazy
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.views.generic.base import TemplateView
 from django.views.generic.edit import UpdateView
-from django.contrib.auth import get_user_model
+from django.contrib.    auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from django.contrib import messages
 from django.shortcuts import redirect
@@ -21,8 +21,10 @@ from core.views import (
 )
 from .tables import UserTable
 from .filters import UserFilter
+from presente.models import PerfilGamificado, UsuarioGamificacao
+from presente.services import PointService
 
-User = get_user_model()
+User = get_user_model() 
 
 
 class ExcludeAdminMixin:
@@ -93,6 +95,23 @@ class UserProfileView(LoginRequiredMixin, PageTitleMixin, TemplateView):
             pk=self.request.user.pk
         )
         context["user"] = user
+        context["my_points"] = PointService.calculate_user_point(self.request.user)
+        context["perfil"] = PerfilGamificado.objects.filter(user=self.request.user).first()
+        context["total_badges"] = UsuarioGamificacao.objects.filter(
+            user=self.request.user,
+            gamificacao__tipo__tipo="BDG"
+        ).count()
+        context["total_trofeus"] = UsuarioGamificacao.objects.filter(
+            user=self.request.user,
+            gamificacao__tipo__tipo="TRF"
+        ).count()
+        context["total_medalhas"] = UsuarioGamificacao.objects.filter(
+            user=self.request.user,
+            gamificacao__tipo__tipo="MDL"
+        ).count()
+        context["conquistas"] = UsuarioGamificacao.objects.filter(
+            user=self.request.user
+        ).select_related('gamificacao', 'gamificacao__tipo', 'gamificacao__trilha')
         return context
 
 

@@ -18,3 +18,8 @@ def has_active_filters(filterset):
             return True
 
     return False
+
+
+@register.filter
+def filter_by_tipo(conquistas, tipo):
+    return [c for c in conquistas if c.gamificacao.tipo.tipo == tipo]
