@@ -959,12 +959,27 @@ class TrocaConfirmarView(LoginRequiredMixin, View):
 # Histórico de trocas do usuário
 # ──────────────────────────────────────────────────────────────
  
-class TrocaHistoricoView(LoginRequiredMixin, TemplateView):
-    template_name = "presente/troca_historico.html"
- 
+class MinhasRecompensasView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/minhas_recompensas.html"
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["trocas"] = TrocaService.get_trocas_usuario(self.request.user)
+
+        trocas = (
+            Troca.objects.filter(usuario=self.request.user)
+            .prefetch_related("itens__brinde__evento")
+            .order_by("-data")
+        )
+
+        total_gasto = trocas.aggregate(total=Sum("pontos_gastos")).get("total") or 0
+        total_itens = sum(
+            item.quantidade
+            for troca in trocas
+            for item in troca.itens.all()
+        )
+
+        context["trocas"] = trocas
+        context["total_gasto"] = total_gasto
+        context["total_itens"] = total_itens
         context["total_pontos"] = PointService.calculate_user_point(self.request.user)
         return context
- 

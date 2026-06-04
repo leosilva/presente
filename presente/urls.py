@@ -95,5 +95,6 @@ urlpatterns = [
     path("loja/carrinho/adicionar/", views.CarrinhoAdicionarView.as_view(), name="carrinho_adicionar"),
     path("loja/carrinho/remover/<int:brinde_pk>/", views.CarrinhoRemoverView.as_view(), name="carrinho_remover"),
     path("loja/confirmar/", views.TrocaConfirmarView.as_view(), name="troca_confirmar"),
-    path("loja/historico/", views.TrocaHistoricoView.as_view(), name="troca_historico"),
+    path("loja/historico/", views.MinhasRecompensasView.as_view(), name="troca_historico"),
+    path("minhas-recompensas/", views.MinhasRecompensasView.as_view(), name="minhas_recompensas"),
 ]
