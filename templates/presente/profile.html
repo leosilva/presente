@@ -4,177 +4,74 @@
 {% block extra_head %}
 <style>
   .card {
-    background-color: transparent !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-  .card-body {
-    background-color: white !important;
-    border: none !important;
-    border-radius: 0 0 8px 8px;
-  }
-  .card-footer {
-    background-color: white !important;
-    border: none !important;
-    border-radius: 0 0 8px 8px;
-  }
-  .card-header.p-0 {
-    background-color: transparent !important;
-    border-bottom: none !important;
-    padding: 0 16px !important;
-  }
-  .card-header .nav-tabs {
-    border-bottom: 1px solid #dee2e6 !important;
-    background-color: transparent !important;
-    gap: 4px;
-  }
-  .card-header .nav-tabs .nav-link {
-    color: #495057;
-    background-color: transparent !important;
-    border: none !important;
-    border-radius: 0 !important;
-    padding: 10px 16px;
-    font-size: 14px;
-    font-weight: 500;
-    transition: all 0.2s ease;
-    margin-bottom: -1px;
-  }
-  .card-header .nav-tabs .nav-link:hover:not(.active) {
-    background-color: rgba(0,0,0,0.04) !important;
-    color: #212529;
-    border-radius: 8px 8px 0 0 !important;
-  }
-  .card-header .nav-tabs .nav-link.active {
-    background-color: white !important;
-    color: #212529 !important;
-    border: 1px solid #dee2e6 !important;
-    border-bottom: 1px solid white !important;
-    border-radius: 8px 8px 0 0 !important;
-    font-weight: 600;
-  }
-  .card-header .nav-tabs .nav-link:not(.active) {
-    background-color: #f0f0f0 !important;
-    color: #6c757d !important;
-    border-radius: 8px 8px 0 0 !important;
-  }
-
-  /* Transição suave entre abas */
-
-  /* Stats cards no topo */
-  .stat-card {
-    background: #fff;
-    border-radius: 12px;
-    padding: 16px 12px;
-    text-align: center;
-    box-shadow: 0 1px 4px rgba(0,0,0,0.07);
-  }
-  .stat-card .stat-icon {
-    font-size: 2rem;
-    display: block;
-    margin-bottom: 4px;
-  }
-  .stat-card .stat-number {
-    font-size: 1.6rem;
-    font-weight: 700;
-    line-height: 1;
-    color: #212529;
-  }
-  .stat-card .stat-label {
-    font-size: 0.72rem;
-    color: #6c757d;
-    margin-top: 2px;
-  }
-
-  /* Gráfico de rosca */
-  .donut-wrap {
-    display: inline-block;
-    position: relative;
-  }
-  .donut-label {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-    pointer-events: none;
-  }
-  .donut-level-name {
-    font-weight: 700;
-    font-size: 1rem;
-    color: #212529;
-    white-space: nowrap;
-  }
-  .donut-percent {
-    font-size: 0.78rem;
-    color: #6c757d;
-  }
-
-  /* Cards individuais de conquista */
-  .conquista-card-new {
-    background: white;
-    border-radius: 10px;
-    padding: 14px 10px;
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.07);
-  }
-  .conquista-card-new .conquista-titulo {
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #212529;
-    margin-top: 6px;
-  }
-  .conquista-card-new .conquista-trilha {
-    font-size: 0.7rem;
-    color: #6c757d;
-    margin-top: 2px;
-  }
-
-  /* Accordion de conquistas */
-  .conquista-accordion-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 12px 14px;
-    background: #f8f9fa;
-    border-radius: 10px;
-    cursor: pointer;
-    font-size: 0.88rem;
-    font-weight: 600;
-    color: #343a40;
-    user-select: none;
-    transition: background 0.15s ease;
-  }
-  .conquista-accordion-header:hover {
-    background: #e9ecef;
-  }
-  .conquista-arrow {
-    color: #adb5bd;
-    font-size: 0.7rem;
-    transition: transform 0.2s ease;
-  }
-  .conquista-accordion-header.active {
-    background: #e8f0fe;
-    color: #0d6efd;
-    border-radius: 10px 10px 0 0;
-  }
-  .conquista-accordion-header.active .conquista-arrow {
-    transform: rotate(90deg);
-    color: #0d6efd;
-  }
-  .conquista-accordion-body {
-    background: #f8f9fa;
-    border-radius: 0 0 10px 10px;
-    padding: 12px;
-  }
-
-  .tab-anim {
-  transform: translateY(0) !important;
-  }
-  @keyframes tabFadeUp {
-    from { opacity: 0; transform: translateY(12px); }
-    to   { opacity: 1; transform: translateY(0); }
-  }
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
 }
+
+.card-body {
+  background-color: white !important;
+  border: none !important;
+  border-radius: 0 0 8px 8px;
+}
+
+.card-footer {
+  background-color: white !important;
+  border: none !important;
+  border-radius: 0 0 8px 8px;
+}
+
+.card-header.p-0 {
+  background-color: transparent !important;
+  border-bottom: none !important;
+  padding: 0 16px !important;
+}
+
+.card-header .nav-tabs {
+  border-bottom: 1px solid #dee2e6 !important;
+  background-color: transparent !important;
+  gap: 4px;
+}
+
+.card-header .nav-tabs .nav-link {
+  color: #495057;
+  background-color: transparent !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: 500;
+  transition: all 0.2s ease;
+  margin-bottom: -1px;
+}
+
+.card-header .nav-tabs .nav-link:hover:not(.active) {
+  background-color: rgba(0,0,0,0.04) !important;
+  color: #212529;
+  border-radius: 8px 8px 0 0 !important;
+}
+
+.card-header .nav-tabs .nav-link.active {
+  background-color: white !important;
+  color: #212529 !important;
+  border: 1px solid #dee2e6 !important;
+  border-bottom: 1px solid white !important;
+  border-radius: 8px 8px 0 0 !important;
+  font-weight: 600;
+}
+
+.card-header .nav-tabs .nav-link.active {
+  border: none !important;
+  border-bottom: 1px solid white !important;
+  box-shadow: none !important;
+}
+
+.card-header .nav-tabs .nav-link:not(.active) {
+  background-color: #f0f0f0 !important;
+  color: #6c757d !important;
+  border-radius: 8px 8px 0 0 !important;
+}
+  }
 </style>
 {% endblock %}
 
@@ -188,8 +85,6 @@
   <div class="row">
     <div class="col-md-8 col-lg-6 mx-auto">
       <div class="card shadow-sm">
-
-        <!-- Abas -->
         <div class="card-header p-0">
           <ul class="nav nav-tabs card-header-tabs m-0 w-100" role="tablist">
             <li class="nav-item">
@@ -208,297 +103,188 @@
         <div class="card-body">
           <div class="tab-content">
 
-            <!-- ABA: MEU PERFIL -->
-            <div class="tab-pane show active" id="perfil">
-              <div class="tab-anim">
-                <div class="row g-3">
-                  <div class="col-12 text-center mb-3">
-                    <img
-                      {% if user.avatar_url %} src="{{ user.avatar_url }}"
-                      {% elif user.avatar %} src="{{ user.avatar.url }}"
-                      {% else %} src="{% static 'img/placeholder/avatar.png' %}"
-                      {% endif %}
-                      class="rounded-circle shadow-sm border"
-                      style="width: 150px; height: 150px; object-fit: cover;"
-                    />
-                  </div>
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Nome Completo</label>
-                      <div class="detail-value">{{ user.get_full_name }}</div>
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Email</label>
-                      <div class="detail-value">{{ user.email }}</div>
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Usuário</label>
-                      <div class="detail-value">{{ user.username }}</div>
-                    </div>
-                  </div>
-                  {% if user.is_suap_user %}
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Matrícula</label>
-                      <div class="detail-value">{{ user.matricula|default:"-" }}</div>
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Campus</label>
-                      <div class="detail-value">{{ user.campus|default:"-" }}</div>
-                    </div>
-                  </div>
-                  {% endif %}
-                  {% if user.type == "ALUNO" %}
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Curso</label>
-                      <div class="detail-value">{{ user.curso|default:"-" }}</div>
-                    </div>
-                  </div>
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Período de Referência</label>
-                      <div class="detail-value">{{ user.periodo_referencia|default:"-" }}</div>
-                    </div>
-                  </div>
-                  {% endif %}
-                  <div class="col-12">
-                    <div class="detail-field">
-                      <label class="text-muted small text-uppercase mb-1">Tipo</label>
-                      <div class="detail-value">
-                        {% if user.type %}
-                          <span class="badge {% if user.type == 'SERVIDOR' %}bg-success{% else %}bg-info{% endif %}">
-                            {{ user.get_type_display }}
-                          </span>
-                        {% else %}
-                          <span class="text-muted">-</span>
-                        {% endif %}
-                      </div>
-                    </div>
+            <!-- Aba Meu Perfil -->
+            <div class="tab-pane fade show active" id="perfil">
+              <div class="row g-3">
+                <div class="col-12 text-center mb-3">
+                  <img
+                    {% if user.avatar_url %} src="{{ user.avatar_url }}"
+                    {% elif user.avatar %} src="{{ user.avatar.url }}"
+                    {% else %} src="{% static 'img/placeholder/avatar.png' %}"
+                    {% endif %}
+                    class="rounded-circle shadow-sm border"
+                    style="width: 150px; height: 150px; object-fit: cover;"
+                  />
+                </div>
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Nome Completo</label>
+                    <div class="detail-value">{{ user.get_full_name }}</div>
                   </div>
                 </div>
-              </div>
-            </div>
-            <!-- /ABA MEU PERFIL -->
-
-            <!-- ABA: MINHAS CONQUISTAS -->
-            <div class="tab-pane" id="conquistas">
-              <div class="tab-anim">
-                <!-- Topo: cards + rosca -->
-                <div class="row align-items-center mb-4 g-3">
-                  <div class="col-5">
-                    <div class="row g-2">
-                      <div class="col-12">
-                        <div class="stat-card">
-                          <span class="stat-icon">🏅</span>
-                          <div class="stat-number">{{ total_badges }}</div>
-                          <div class="stat-label">Badges Totais</div>
-                        </div>
-                      </div>
-                      <div class="col-12">
-                        <div class="stat-card">
-                          <span class="stat-icon">🏆</span>
-                          <div class="stat-number">{{ total_trofeus }}</div>
-                          <div class="stat-label">Troféus Totais</div>
-                        </div>
-                      </div>
-                      <div class="col-12">
-                        <div class="stat-card">
-                          <span class="stat-icon">🎖️</span>
-                          <div class="stat-number">{{ total_medalhas }}</div>
-                          <div class="stat-label">Medalhas Totais</div>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div class="col-7 text-center">
-                    <div class="donut-wrap">
-                      <svg width="170" height="170" viewBox="0 0 170 170">
-                        <circle cx="85" cy="85" r="65" fill="none" stroke="#e9ecef" stroke-width="16"/>
-                        <circle
-                          cx="85" cy="85" r="65"
-                          fill="none"
-                          stroke="#0d6efd"
-                          stroke-width="16"
-                          stroke-linecap="round"
-                          stroke-dasharray="408"
-                          stroke-dashoffset="{{ offset }}"
-                          transform="rotate(-90 85 85)"
-                        />
-                      </svg>
-                      <div class="donut-label">
-                        <div class="donut-level-name">
-                          {% if perfil.nivel %}{{ perfil.nivel.nome }}{% else %}Sem nível{% endif %}
-                        </div>
-                        <div class="donut-percent">{{ percentual|floatformat:0 }}%</div>
-                      </div>
-                    </div>
-                    <div class="text-muted mt-1" style="font-size: 0.72rem;">
-                      {% if perfil.nivel %}
-                        {{ my_points }} pts
-                        {% if proximo_nivel %}/ {{ proximo_nivel.pontos_minimos }} pts para o próximo nível
-                        {% else %}— Nível máximo atingido!
-                        {% endif %}
-                      {% endif %}
-                    </div>
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Email</label>
+                    <div class="detail-value">{{ user.email }}</div>
                   </div>
                 </div>
-              </div>
-
-              <!-- Acordeões -->
-              <div class="d-flex flex-column gap-2 mb-2">
-
-                <!-- Badges -->
-                <div>
-                  <div class="conquista-accordion-header" data-bs-toggle="collapse" data-bs-target="#collapsBadges">
-                    <span><i class="bi bi-award-fill text-warning me-2"></i>Badges ({{ total_badges }})</span>
-                    <i class="bi bi-caret-right-fill conquista-arrow"></i>
-                  </div>
-                  <div id="collapsBadges" class="collapse">
-                    <div class="conquista-accordion-body">
-                      {% with conquistas|filter_by_tipo:"BDG" as badges %}
-                        {% if badges %}
-                        <div class="row g-2">
-                          {% for ug in badges %}
-                          <div class="col-6 col-md-4">
-                            <div class="conquista-card-new">
-                              {% if ug.gamificacao.tipo.icone %}
-                                <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 36px; height: 36px;">
-                              {% else %}
-                                <i class="bi bi-award-fill text-warning" style="font-size: 1.8rem;"></i>
-                              {% endif %}
-                              <div class="conquista-titulo">{{ ug.gamificacao.titulo }}</div>
-                              <div class="conquista-trilha">{{ ug.gamificacao.trilha.name }}</div>
-                              <span class="badge bg-success mt-1">+{{ ug.gamificacao.pontos }} pts</span>
-                            </div>
-                          </div>
-                          {% endfor %}
-                        </div>
-                        {% else %}
-                        <p class="text-muted text-center py-2 small mb-0">Nenhum badge conquistado ainda.</p>
-                        {% endif %}
-                      {% endwith %}
-                    </div>
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Usuário</label>
+                    <div class="detail-value">{{ user.username }}</div>
                   </div>
                 </div>
-
-                <!-- Troféus -->
-                <div>
-                  <div class="conquista-accordion-header" data-bs-toggle="collapse" data-bs-target="#collapsTrofeus">
-                    <span><i class="bi bi-trophy-fill text-success me-2"></i>Troféus ({{ total_trofeus }})</span>
-                    <i class="bi bi-caret-right-fill conquista-arrow"></i>
-                  </div>
-                  <div id="collapsTrofeus" class="collapse">
-                    <div class="conquista-accordion-body">
-                      {% with conquistas|filter_by_tipo:"TRF" as trofeus %}
-                        {% if trofeus %}
-                        <div class="row g-2">
-                          {% for ug in trofeus %}
-                          <div class="col-6 col-md-4">
-                            <div class="conquista-card-new">
-                              {% if ug.gamificacao.tipo.icone %}
-                                <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 36px; height: 36px;">
-                              {% else %}
-                                <i class="bi bi-trophy-fill text-success" style="font-size: 1.8rem;"></i>
-                              {% endif %}
-                              <div class="conquista-titulo">{{ ug.gamificacao.titulo }}</div>
-                              <div class="conquista-trilha">{{ ug.gamificacao.trilha.name }}</div>
-                              <span class="badge bg-success mt-1">+{{ ug.gamificacao.pontos }} pts</span>
-                            </div>
-                          </div>
-                          {% endfor %}
-                        </div>
-                        {% else %}
-                        <p class="text-muted text-center py-2 small mb-0">Nenhum troféu conquistado ainda.</p>
-                        {% endif %}
-                      {% endwith %}
-                    </div>
+                {% if user.is_suap_user %}
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Matrícula</label>
+                    <div class="detail-value">{{ user.matricula|default:"-" }}</div>
                   </div>
                 </div>
-
-                <!-- Medalhas -->
-                <div>
-                  <div class="conquista-accordion-header" data-bs-toggle="collapse" data-bs-target="#collapsMedalhas">
-                    <span><i class="bi bi-award-fill text-danger me-2"></i>Medalhas ({{ total_medalhas }})</span>
-                    <i class="bi bi-caret-right-fill conquista-arrow"></i>
-                  </div>
-                  <div id="collapsMedalhas" class="collapse">
-                    <div class="conquista-accordion-body">
-                      {% with conquistas|filter_by_tipo:"MDL" as medalhas %}
-                        {% if medalhas %}
-                        <div class="row g-2">
-                          {% for ug in medalhas %}
-                          <div class="col-6 col-md-4">
-                            <div class="conquista-card-new">
-                              {% if ug.gamificacao.tipo.icone %}
-                                <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 36px; height: 36px;">
-                              {% else %}
-                                <i class="bi bi-award-fill text-danger" style="font-size: 1.8rem;"></i>
-                              {% endif %}
-                              <div class="conquista-titulo">{{ ug.gamificacao.titulo }}</div>
-                              <div class="conquista-trilha">{{ ug.gamificacao.trilha.name }}</div>
-                              <span class="badge bg-success mt-1">+{{ ug.gamificacao.pontos }} pts</span>
-                            </div>
-                          </div>
-                          {% endfor %}
-                        </div>
-                        {% else %}
-                        <p class="text-muted text-center py-2 small mb-0">Nenhuma medalha conquistada ainda.</p>
-                        {% endif %}
-                      {% endwith %}
-                    </div>
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Campus</label>
+                    <div class="detail-value">{{ user.campus|default:"-" }}</div>
                   </div>
                 </div>
-
-                <!-- Minhas Trilhas -->
-                <div>
-                  <div class="conquista-accordion-header" data-bs-toggle="collapse" data-bs-target="#collapsTrilhas">
-                    <span><i class="bi bi-map-fill text-primary me-2"></i>Minhas Trilhas</span>
-                    <i class="bi bi-caret-right-fill conquista-arrow"></i>
+                {% endif %}
+                {% if user.type == "ALUNO" %}
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Curso</label>
+                    <div class="detail-value">{{ user.curso|default:"-" }}</div>
                   </div>
-                  <div id="collapsTrilhas" class="collapse">
-                    <div class="conquista-accordion-body">
-                      {% if trilhas_completas %}
-                      <div class="d-flex flex-column gap-2">
-                        {% for trilha in trilhas_completas %}
-                        <div class="conquista-card-new d-flex align-items-center gap-3 text-start">
-                          <i class="bi bi-check-circle-fill text-success" style="font-size: 1.3rem; flex-shrink:0;"></i>
-                          <div class="flex-grow-1">
-                            <div class="conquista-titulo">{{ trilha.name }}</div>
-                            {% if trilha.descricao %}
-                            <div class="conquista-trilha">{{ trilha.descricao }}</div>
-                            {% endif %}
-                          </div>
-                          {% if trilha.gamificacao_bonus %}
-                          <span class="badge bg-success">+{{ trilha.gamificacao_bonus.pontos }} pts</span>
-                          {% endif %}
-                        </div>
-                        {% endfor %}
-                      </div>
+                </div>
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Período de Referência</label>
+                    <div class="detail-value">{{ user.periodo_referencia|default:"-" }}</div>
+                  </div>
+                </div>
+                {% endif %}
+                <div class="col-12">
+                  <div class="detail-field">
+                    <label class="text-muted small text-uppercase mb-1">Tipo</label>
+                    <div class="detail-value">
+                      {% if user.type %}
+                        <span class="badge {% if user.type == 'SERVIDOR' %}bg-success{% else %}bg-info{% endif %}">
+                          {{ user.get_type_display }}
+                        </span>
                       {% else %}
-                      <p class="text-muted text-center py-2 small mb-0">Nenhuma trilha completada ainda.</p>
+                        <span class="text-muted">-</span>
                       {% endif %}
                     </div>
                   </div>
                 </div>
-
               </div>
-              <!-- /acordeões -->
-
             </div>
-            <!-- /ABA MINHAS CONQUISTAS -->
+
+            <!-- Aba Minhas Conquistas -->
+            <div class="tab-pane fade" id="conquistas">
+              <div class="text-center mb-4">
+                <div class="bg-primary bg-opacity-10 rounded p-3 d-inline-block">
+                  <i class="bi bi-star-fill text-warning" style="font-size: 2rem;"></i>
+                  <div class="fs-3 fw-bold">{{ my_points }}</div>
+                  <div class="text-muted small">Pontos Totais</div>
+                </div>
+              </div>
+
+              <!-- Badges -->
+              <div class="mb-4">
+                <h6 class="border-bottom pb-2 mb-3">
+                  <i class="bi bi-award text-warning"></i> Badges ({{ total_badges }})
+                </h6>
+                {% with conquistas|filter_by_tipo:"BDG" as badges %}
+                  {% if badges %}
+                  <div class="row g-2">
+                    {% for ug in badges %}
+                    <div class="col-6 col-md-4">
+                      <div class="card border-0 bg-light h-100">
+                        <div class="card-body text-center p-2">
+                          {% if ug.gamificacao.tipo.icone %}
+                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
+                          {% else %}
+                            <i class="bi bi-award-fill text-warning" style="font-size: 1.5rem;"></i>
+                          {% endif %}
+                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
+                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
+                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="text-muted text-center py-3">Nenhum badge conquistado ainda.</p>
+                  {% endif %}
+                {% endwith %}
+              </div>
+
+              <!-- Troféus -->
+              <div class="mb-4">
+                <h6 class="border-bottom pb-2 mb-3">
+                  <i class="bi bi-trophy text-success"></i> Troféus ({{ total_trofeus }})
+                </h6>
+                {% with conquistas|filter_by_tipo:"TRF" as trofeus %}
+                  {% if trofeus %}
+                  <div class="row g-2">
+                    {% for ug in trofeus %}
+                    <div class="col-6 col-md-4">
+                      <div class="card border-0 bg-light h-100">
+                        <div class="card-body text-center p-2">
+                          {% if ug.gamificacao.tipo.icone %}
+                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
+                          {% else %}
+                            <i class="bi bi-trophy-fill text-success" style="font-size: 1.5rem;"></i>
+                          {% endif %}
+                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
+                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
+                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="text-muted text-center py-3">Nenhum troféu conquistado ainda.</p>
+                  {% endif %}
+                {% endwith %}
+              </div>
+
+              <!-- Medalhas -->
+              <div class="mb-4">
+                <h6 class="border-bottom pb-2 mb-3">
+                  <i class="bi bi-medal text-info"></i> Medalhas ({{ total_medalhas }})
+                </h6>
+                {% with conquistas|filter_by_tipo:"MDL" as medalhas %}
+                  {% if medalhas %}
+                  <div class="row g-2">
+                    {% for ug in medalhas %}
+                    <div class="col-6 col-md-4">
+                      <div class="card border-0 bg-light h-100">
+                        <div class="card-body text-center p-2">
+                          {% if ug.gamificacao.tipo.icone %}
+                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
+                          {% else %}
+                            <i class="bi bi-medal-fill text-info" style="font-size: 1.5rem;"></i>
+                          {% endif %}
+                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
+                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
+                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
+                        </div>
+                      </div>
+                    </div>
+                    {% endfor %}
+                  </div>
+                  {% else %}
+                  <p class="text-muted text-center py-3">Nenhuma medalha conquistada ainda.</p>
+                  {% endif %}
+                {% endwith %}
+              </div>
+            </div>
 
           </div>
-          <!-- /tab-content -->
         </div>
-        <!-- /card-body -->
 
         <div class="card-footer bg-light">
           <div class="d-flex justify-content-between flex-wrap gap-2">
@@ -506,9 +292,11 @@
               <i class="bi bi-arrow-left"></i> Voltar
             </a>
             {% if not user.is_suap_user %}
-            <a href="{% url 'users:user_profile_change' %}" class="btn btn-primary">
-              <i class="bi bi-pencil"></i> Editar Perfil
-            </a>
+            <div class="d-flex gap-2">
+              <a href="{% url 'users:user_profile_change' %}" class="btn btn-primary">
+                <i class="bi bi-pencil"></i> Editar Perfil
+              </a>
+            </div>
             {% else %}
             <div class="text-muted small">
               <i class="bi bi-info-circle"></i> Perfil gerenciado pelo SUAP
@@ -516,41 +304,8 @@
             {% endif %}
           </div>
         </div>
-
       </div>
-      <!-- /card -->
     </div>
   </div>
 </div>
-
-<script>
-  // Accordion: girar seta
-  document.querySelectorAll('.conquista-accordion-header').forEach(header => {
-    const targetId = header.getAttribute('data-bs-target');
-    const collapseEl = document.querySelector(targetId);
-    collapseEl.addEventListener('show.bs.collapse', () => header.classList.add('active'));
-    collapseEl.addEventListener('hide.bs.collapse', () => header.classList.remove('active'));
-  });
-
-  // Fade ao trocar aba
-  document.querySelectorAll('[data-bs-toggle="tab"]').forEach(tabBtn => {
-  tabBtn.addEventListener('show.bs.tab', event => {
-    const targetId = event.target.getAttribute('data-bs-target');
-    const anim = document.querySelector(targetId + ' .tab-anim');
-    if (!anim) return;
-    anim.style.transition = 'none';
-    anim.style.setProperty('transform', 'translateY(24px)', 'important');
-    anim.style.opacity = '0';
-  });
-
-  tabBtn.addEventListener('shown.bs.tab', event => {
-    const targetId = event.target.getAttribute('data-bs-target');
-    const anim = document.querySelector(targetId + ' .tab-anim');
-    if (!anim) return;
-    anim.style.transition = 'opacity 0.4s ease, transform 0.4s ease';
-    anim.style.setProperty('transform', 'translateY(0)', 'important');
-    anim.style.opacity = '1';
-  });
-});
-</script>
 {% endblock %}
