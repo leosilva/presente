@@ -1,79 +1,5 @@
 {% extends "presente/private_base.html" %}
-{% load static filter_tags %}
-
-{% block extra_head %}
-<style>
-  .card {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.card-body {
-  background-color: white !important;
-  border: none !important;
-  border-radius: 0 0 8px 8px;
-}
-
-.card-footer {
-  background-color: white !important;
-  border: none !important;
-  border-radius: 0 0 8px 8px;
-}
-
-.card-header.p-0 {
-  background-color: transparent !important;
-  border-bottom: none !important;
-  padding: 0 16px !important;
-}
-
-.card-header .nav-tabs {
-  border-bottom: 1px solid #dee2e6 !important;
-  background-color: transparent !important;
-  gap: 4px;
-}
-
-.card-header .nav-tabs .nav-link {
-  color: #495057;
-  background-color: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  margin-bottom: -1px;
-}
-
-.card-header .nav-tabs .nav-link:hover:not(.active) {
-  background-color: rgba(0,0,0,0.04) !important;
-  color: #212529;
-  border-radius: 8px 8px 0 0 !important;
-}
-
-.card-header .nav-tabs .nav-link.active {
-  background-color: white !important;
-  color: #212529 !important;
-  border: 1px solid #dee2e6 !important;
-  border-bottom: 1px solid white !important;
-  border-radius: 8px 8px 0 0 !important;
-  font-weight: 600;
-}
-
-.card-header .nav-tabs .nav-link.active {
-  border: none !important;
-  border-bottom: 1px solid white !important;
-  box-shadow: none !important;
-}
-
-.card-header .nav-tabs .nav-link:not(.active) {
-  background-color: #f0f0f0 !important;
-  color: #6c757d !important;
-  border-radius: 8px 8px 0 0 !important;
-}
-  }
-</style>
-{% endblock %}
+{% load static %}
 
 {% block crumb %}
 {{ block.super }}
@@ -84,208 +10,114 @@
 <div class="container-fluid">
   <div class="row">
     <div class="col-md-8 col-lg-6 mx-auto">
-      <div class="card shadow-sm">
-        <div class="card-header p-0">
-          <ul class="nav nav-tabs card-header-tabs m-0 w-100" role="tablist">
-            <li class="nav-item">
-              <button class="nav-link active" data-bs-toggle="tab" data-bs-target="#perfil" type="button">
-                <i class="bi bi-person-circle"></i> Meu Perfil
-              </button>
-            </li>
-            <li class="nav-item">
-              <button class="nav-link" data-bs-toggle="tab" data-bs-target="#conquistas" type="button">
-                <i class="bi bi-trophy"></i> Minhas Conquistas
-              </button>
-            </li>
-          </ul>
+      <div class="card">
+        <div class="card-header bg-primary text-white">
+          <h5 class="mb-0">
+            <i class="bi bi-person-circle"></i> Perfil do Usuário
+          </h5>
         </div>
-
         <div class="card-body">
-          <div class="tab-content">
-
-            <!-- Aba Meu Perfil -->
-            <div class="tab-pane fade show active" id="perfil">
-              <div class="row g-3">
-                <div class="col-12 text-center mb-3">
-                  <img
-                    {% if user.avatar_url %} src="{{ user.avatar_url }}"
-                    {% elif user.avatar %} src="{{ user.avatar.url }}"
-                    {% else %} src="{% static 'img/placeholder/avatar.png' %}"
-                    {% endif %}
-                    class="rounded-circle shadow-sm border"
-                    style="width: 150px; height: 150px; object-fit: cover;"
-                  />
-                </div>
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Nome Completo</label>
-                    <div class="detail-value">{{ user.get_full_name }}</div>
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Email</label>
-                    <div class="detail-value">{{ user.email }}</div>
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Usuário</label>
-                    <div class="detail-value">{{ user.username }}</div>
-                  </div>
-                </div>
-                {% if user.is_suap_user %}
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Matrícula</label>
-                    <div class="detail-value">{{ user.matricula|default:"-" }}</div>
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Campus</label>
-                    <div class="detail-value">{{ user.campus|default:"-" }}</div>
-                  </div>
-                </div>
+          <div class="row g-3">
+            <div class="col-12 text-center mb-3">
+              <img
+                {% if user.avatar_url %}
+                src="{{ user.avatar_url }}"
+                {% elif user.avatar %}
+                src="{{ user.avatar.url }}"
+                {% else %}
+                src="{% static 'img/placeholder/avatar.png' %}"
                 {% endif %}
-                {% if user.type == "ALUNO" %}
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Curso</label>
-                    <div class="detail-value">{{ user.curso|default:"-" }}</div>
-                  </div>
-                </div>
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Período de Referência</label>
-                    <div class="detail-value">{{ user.periodo_referencia|default:"-" }}</div>
-                  </div>
-                </div>
-                {% endif %}
-                <div class="col-12">
-                  <div class="detail-field">
-                    <label class="text-muted small text-uppercase mb-1">Tipo</label>
-                    <div class="detail-value">
-                      {% if user.type %}
-                        <span class="badge {% if user.type == 'SERVIDOR' %}bg-success{% else %}bg-info{% endif %}">
-                          {{ user.get_type_display }}
-                        </span>
-                      {% else %}
-                        <span class="text-muted">-</span>
-                      {% endif %}
-                    </div>
-                  </div>
+                class="rounded-circle shadow"
+                alt="Avatar do usuário"
+                style="width: 150px; height: 150px; object-fit: cover;"
+              />
+            </div>
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Nome Completo</label>
+                <div class="detail-value">{{ user.get_full_name }}</div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Email</label>
+                <div class="detail-value">{{ user.email }}</div>
+              </div>
+            </div>
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Usuário</label>
+                <div class="detail-value">{{ user.username }}</div>
+              </div>
+            </div>
+            {% if user.is_suap_user %}
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Matrícula</label>
+                <div class="detail-value">
+                  {% if user.matricula %}
+                    {{ user.matricula }}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
                 </div>
               </div>
             </div>
-
-            <!-- Aba Minhas Conquistas -->
-            <div class="tab-pane fade" id="conquistas">
-              <div class="text-center mb-4">
-                <div class="bg-primary bg-opacity-10 rounded p-3 d-inline-block">
-                  <i class="bi bi-star-fill text-warning" style="font-size: 2rem;"></i>
-                  <div class="fs-3 fw-bold">{{ my_points }}</div>
-                  <div class="text-muted small">Pontos Totais</div>
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Campus</label>
+                <div class="detail-value">
+                  {% if user.campus %}
+                    {{ user.campus }}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
                 </div>
               </div>
-
-              <!-- Badges -->
-              <div class="mb-4">
-                <h6 class="border-bottom pb-2 mb-3">
-                  <i class="bi bi-award text-warning"></i> Badges ({{ total_badges }})
-                </h6>
-                {% with conquistas|filter_by_tipo:"BDG" as badges %}
-                  {% if badges %}
-                  <div class="row g-2">
-                    {% for ug in badges %}
-                    <div class="col-6 col-md-4">
-                      <div class="card border-0 bg-light h-100">
-                        <div class="card-body text-center p-2">
-                          {% if ug.gamificacao.tipo.icone %}
-                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
-                          {% else %}
-                            <i class="bi bi-award-fill text-warning" style="font-size: 1.5rem;"></i>
-                          {% endif %}
-                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
-                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
-                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {% endfor %}
-                  </div>
+            </div>
+            {% endif %}
+            {% if user.type == "ALUNO" %}
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Curso</label>
+                <div class="detail-value">
+                  {% if user.curso %}
+                    {{ user.curso }}
                   {% else %}
-                  <p class="text-muted text-center py-3">Nenhum badge conquistado ainda.</p>
+                    <span class="text-muted">-</span>
                   {% endif %}
-                {% endwith %}
-              </div>
-
-              <!-- Troféus -->
-              <div class="mb-4">
-                <h6 class="border-bottom pb-2 mb-3">
-                  <i class="bi bi-trophy text-success"></i> Troféus ({{ total_trofeus }})
-                </h6>
-                {% with conquistas|filter_by_tipo:"TRF" as trofeus %}
-                  {% if trofeus %}
-                  <div class="row g-2">
-                    {% for ug in trofeus %}
-                    <div class="col-6 col-md-4">
-                      <div class="card border-0 bg-light h-100">
-                        <div class="card-body text-center p-2">
-                          {% if ug.gamificacao.tipo.icone %}
-                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
-                          {% else %}
-                            <i class="bi bi-trophy-fill text-success" style="font-size: 1.5rem;"></i>
-                          {% endif %}
-                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
-                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
-                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {% endfor %}
-                  </div>
-                  {% else %}
-                  <p class="text-muted text-center py-3">Nenhum troféu conquistado ainda.</p>
-                  {% endif %}
-                {% endwith %}
-              </div>
-
-              <!-- Medalhas -->
-              <div class="mb-4">
-                <h6 class="border-bottom pb-2 mb-3">
-                  <i class="bi bi-medal text-info"></i> Medalhas ({{ total_medalhas }})
-                </h6>
-                {% with conquistas|filter_by_tipo:"MDL" as medalhas %}
-                  {% if medalhas %}
-                  <div class="row g-2">
-                    {% for ug in medalhas %}
-                    <div class="col-6 col-md-4">
-                      <div class="card border-0 bg-light h-100">
-                        <div class="card-body text-center p-2">
-                          {% if ug.gamificacao.tipo.icone %}
-                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
-                          {% else %}
-                            <i class="bi bi-medal-fill text-info" style="font-size: 1.5rem;"></i>
-                          {% endif %}
-                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
-                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
-                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {% endfor %}
-                  </div>
-                  {% else %}
-                  <p class="text-muted text-center py-3">Nenhuma medalha conquistada ainda.</p>
-                  {% endif %}
-                {% endwith %}
+                </div>
               </div>
             </div>
-
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Período de Referência</label>
+                <div class="detail-value">
+                  {% if user.periodo_referencia %}
+                    {{ user.periodo_referencia }}
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
+            {% endif %}
+            <div class="col-12">
+              <div class="detail-field">
+                <label class="text-muted small text-uppercase mb-1">Tipo</label>
+                <div class="detail-value">
+                  {% if user.type %}
+                    <span class="badge {% if user.type == 'SERVIDOR' %}bg-success{% else %}bg-info{% endif %}">
+                      {{ user.get_type_display }}
+                    </span>
+                  {% else %}
+                    <span class="text-muted">-</span>
+                  {% endif %}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
-
         <div class="card-footer bg-light">
           <div class="d-flex justify-content-between flex-wrap gap-2">
             <a href="{% url 'presente:index' %}" class="btn btn-secondary">
