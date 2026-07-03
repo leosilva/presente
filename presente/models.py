@@ -376,7 +376,6 @@ class MarcosDiversidade(models.Model):
     def __str__(self):
         return f"{self.areas_necessarias} áreas → {self.gamificacao_bonus}"
 
-
 class TrilhaGamificacao(models.Model):
     name = models.CharField(_("Nome"), max_length=100, default="Trilha de Entrada")
     descricao = models.TextField(
