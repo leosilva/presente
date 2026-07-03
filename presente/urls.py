@@ -90,4 +90,11 @@ urlpatterns = [
         "a/<str:encoded_id>/qr/", views.ActivityQRCodeView.as_view(), name="activity_qr"
     ),
     path("checkin/<str:token>/", views.CheckInView.as_view(), name="checkin"),
+        # Loja de Brindes
+    path("loja/", views.LojaView.as_view(), name="loja"),
+    path("loja/carrinho/adicionar/", views.CarrinhoAdicionarView.as_view(), name="carrinho_adicionar"),
+    path("loja/carrinho/remover/<int:brinde_pk>/", views.CarrinhoRemoverView.as_view(), name="carrinho_remover"),
+    path("loja/confirmar/", views.TrocaConfirmarView.as_view(), name="troca_confirmar"),
+    path("loja/historico/", views.MinhasRecompensasView.as_view(), name="troca_historico"),
+    path("minhas-recompensas/", views.MinhasRecompensasView.as_view(), name="minhas_recompensas"),
 ]

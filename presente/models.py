@@ -48,10 +48,10 @@ class ActivityQuerySet(models.QuerySet):
         now = timezone.now()
         return self.annotate(
             status_order=Case(
-                When(end_time__lt=now, then=Value(3)),  # expired
-                When(start_time__gt=now, then=Value(1)),  # not_started
-                When(is_enabled=False, then=Value(2)),  # not_enabled
-                default=Value(0),  # active
+                When(end_time__lt=now, then=Value(3)),
+                When(start_time__gt=now, then=Value(1)),
+                When(is_enabled=False, then=Value(2)),
+                default=Value(0),
                 output_field=IntegerField(),
             )
         )
@@ -63,7 +63,6 @@ class ActivityManager(models.Manager):
 
 
 class Activity(models.Model):
-    
     owners = models.ManyToManyField(
         User,
         related_name="owned_activities",
@@ -103,11 +102,11 @@ class Activity(models.Model):
         help_text=_("Selecione as redes que podem acessar esta atividade"),
     )
     trilha = models.ForeignKey(
-    "TrilhaGamificacao",
-    on_delete=models.CASCADE,
-    related_name="activities",
-    verbose_name=_("Trilha"),
-)
+        "TrilhaGamificacao",
+        on_delete=models.CASCADE,
+        related_name="activities",
+        verbose_name=_("Trilha"),
+    )
     gamificacao = models.ForeignKey(
         "Gamificacao",
         on_delete=models.SET_NULL,
@@ -117,6 +116,32 @@ class Activity(models.Model):
         verbose_name=_("Gamificação associada"),
         help_text=_("Gamificação concedida ao registrar presença nesta atividade."),
     )
+    evento = models.ForeignKey(
+        "Evento",
+        on_delete=models.CASCADE,
+        related_name="activities",
+        verbose_name=_("Evento"),
+        null=True,
+        blank=True,
+    )
+    area = models.ForeignKey(
+        "Area",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        related_name="activities",
+        verbose_name=_("Área"),
+        help_text=_("Área temática desta atividade"),
+    )
+    created_at = models.DateTimeField(
+        _("Criação"), auto_now_add=True, null=True, blank=True
+    )
+    modified_at = models.DateTimeField(
+        _("Modificação"), auto_now=True, null=True, blank=True
+    )
+
+    objects = ActivityManager()
+
     def clean(self):
         if self.gamificacao and self.trilha:
             if self.gamificacao.trilha != self.trilha:
@@ -132,36 +157,10 @@ class Activity(models.Model):
                 raise ValidationError(
                     _("A atividade não pode terminar após o evento.")
                 )
-        
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
-        
-    evento = models.ForeignKey(
-        "Evento",
-        on_delete=models.CASCADE,
-        related_name="activities",
-        verbose_name=_("Evento"),
-        null=True,
-        blank=True
-    )
-    area = models.ForeignKey(
-        "Area",
-        on_delete=models.SET_NULL,
-        null=True,
-        blank=True,
-        related_name="activities",
-        verbose_name=_("Área"),
-        help_text=_("Área temática desta atividade")
-    )
-    created_at = models.DateTimeField(
-        _("Criação"), auto_now_add=True, null=True, blank=True
-    )
-    modified_at = models.DateTimeField(
-        _("Modificação"), auto_now=True, null=True, blank=True
-    )
-   
-    objects = ActivityManager()
 
     def __str__(self):
         return self.title
@@ -190,14 +189,12 @@ class Activity(models.Model):
 
         try:
             client_addr = ip_address(client_ip)
-
             for network_config in active_networks:
                 ip_list = [
                     ip.strip()
                     for ip in network_config.ip_addresses.split("\n")
                     if ip.strip()
                 ]
-
                 for ip_entry in ip_list:
                     try:
                         if "/" in ip_entry:
@@ -210,7 +207,6 @@ class Activity(models.Model):
                                 return True
                     except ValueError:
                         continue
-
             return False
         except ValueError:
             return False
@@ -218,7 +214,6 @@ class Activity(models.Model):
     class Meta:
         verbose_name = _("Atividade")
         verbose_name_plural = _("Atividades")
-
 
 
 class Attendance(models.Model):
@@ -253,43 +248,33 @@ class Attendance(models.Model):
 
         try:
             client_addr = ip_address(self.ip_address)
-
-            # Check all active networks
             for network_config in Network.objects.filter(is_active=True):
                 ip_list = [
                     ip.strip()
                     for ip in network_config.ip_addresses.split("\n")
                     if ip.strip()
                 ]
-
                 for ip_entry in ip_list:
                     try:
-                        # Try to match as network (CIDR notation)
                         if "/" in ip_entry:
                             network_obj = ip_network(ip_entry, strict=False)
                             if client_addr in network_obj:
                                 return network_config.name
-                        # Match as individual IP
                         else:
                             ip_addr = ip_address(ip_entry)
                             if client_addr == ip_addr:
                                 return network_config.name
                     except ValueError:
-                        # Invalid IP configuration, skip
                         continue
-
-            # No network matched, return the IP address
             return self.ip_address
         except ValueError:
-            # Invalid IP address
             return self.ip_address
+
     def save(self, *args, **kwargs):
         is_new = self.pk is None
         super().save(*args, **kwargs)
-
         if is_new:
             from .services import PointService
-
             PointService.process_event("attendance.created", attendance=self)
 
     class Meta:
@@ -297,13 +282,13 @@ class Attendance(models.Model):
         verbose_name_plural = _("Presenças")
         unique_together = [["activity", "user"]]
         ordering = ["-checked_in_at"]
+
+
 class AttendanceRemovalLog(models.Model):
     """
     Auditoria de remoções de presença feitas por responsáveis.
     Preserva um snapshot dos dados da presença mesmo após a deleção.
     """
- 
-    # Quem removeu e quando
     removed_by = models.ForeignKey(
         User,
         on_delete=models.SET_NULL,
@@ -312,14 +297,10 @@ class AttendanceRemovalLog(models.Model):
         verbose_name=_("Removido por"),
     )
     removed_at = models.DateTimeField(_("Removido em"), auto_now_add=True)
- 
-    # Justificativa obrigatória
     justificativa = models.TextField(
         _("Justificativa"),
         help_text=_("Motivo da remoção da presença."),
     )
- 
-    # Snapshot da presença removida (preserva dados mesmo após delete)
     activity = models.ForeignKey(
         "Activity",
         on_delete=models.SET_NULL,
@@ -338,28 +319,27 @@ class AttendanceRemovalLog(models.Model):
         _("Registrado em (original)"),
         help_text=_("Data/hora original do check-in, preservada para histórico."),
     )
- 
+
     class Meta:
         verbose_name = _("Log de Remoção de Presença")
         verbose_name_plural = _("Logs de Remoção de Presença")
         ordering = ["-removed_at"]
- 
+
     def __str__(self):
         return (
             f"Remoção de {self.attendance_user} em "
             f"{self.activity} por {self.removed_by}"
         )
+
+
 class Area(models.Model):
     nome = models.CharField(
         _("Nome"),
         max_length=100,
         unique=True,
-        help_text=_("Ex: Informática, Jogos, EBM")
+        help_text=_("Ex: Informática, Jogos, EBM"),
     )
-    descricao = models.TextField(
-        _("Descrição"),
-        blank=True,
-    )
+    descricao = models.TextField(_("Descrição"), blank=True)
 
     class Meta:
         verbose_name = _("Área")
@@ -368,22 +348,24 @@ class Area(models.Model):
 
     def __str__(self):
         return self.nome
+
+
 class MarcosDiversidade(models.Model):
     areas_necessarias = models.PositiveIntegerField(
         _("Áreas necessárias"),
-        help_text=_("Quantidade de áreas diferentes no mesmo dia para ganhar o bônus")
+        help_text=_("Quantidade de áreas diferentes no mesmo dia para ganhar o bônus"),
     )
     gamificacao_bonus = models.ForeignKey(
         "Gamificacao",
         on_delete=models.CASCADE,
         related_name="marcos_diversidade",
         verbose_name=_("Gamificação de bônus"),
-        help_text=_("Gamificação concedida ao atingir este marco")
+        help_text=_("Gamificação concedida ao atingir este marco"),
     )
     descricao = models.TextField(
         _("Descrição"),
         blank=True,
-        help_text=_("Ex: Participou de 3 áreas diferentes no mesmo dia")
+        help_text=_("Ex: Participou de 3 áreas diferentes no mesmo dia"),
     )
 
     class Meta:
@@ -393,20 +375,20 @@ class MarcosDiversidade(models.Model):
 
     def __str__(self):
         return f"{self.areas_necessarias} áreas → {self.gamificacao_bonus}"
+
+
 class TrilhaGamificacao(models.Model):
     name = models.CharField(_("Nome"), max_length=100, default="Trilha de Entrada")
-
     descricao = models.TextField(
         _("Descrição"),
         blank=True,
-        help_text=_("Descrição da trilha")
+        help_text=_("Descrição da trilha"),
     )
     minimo_atividades = models.PositiveIntegerField(
         _("Mínimo de atividades para completar"),
         default=1,
-        help_text=_("Quantidade mínima de presenças na trilha para ganhar o bônus")
+        help_text=_("Quantidade mínima de presenças na trilha para ganhar o bônus"),
     )
-
     gamificacao_bonus = models.ForeignKey(
         "Gamificacao",
         on_delete=models.SET_NULL,
@@ -414,10 +396,9 @@ class TrilhaGamificacao(models.Model):
         blank=True,
         related_name="trilhas_bonus",
         verbose_name=_("Gamificação de bônus"),
-        help_text=_("Gamificação concedida ao completar a trilha.")
+        help_text=_("Gamificação concedida ao completar a trilha."),
     )
 
-    
     class Meta:
         verbose_name = _("Trilha")
         verbose_name_plural = _("Trilhas")
@@ -426,81 +407,65 @@ class TrilhaGamificacao(models.Model):
     def __str__(self):
         return self.name
 
+
 class TipoGamificacao(models.Model):
     class Tipo(models.TextChoices):
-        BADGE = 'BDG', _('Badge')
-        TROFEU = 'TRF', _('Troféu')
-        MEDALHA = 'MDL', _('Medalha')
+        BADGE = "BDG", _("Badge")
+        TROFEU = "TRF", _("Troféu")
+        MEDALHA = "MDL", _("Medalha")
 
     trilha = models.ForeignKey(
-        TrilhaGamificacao,
-        on_delete=models.CASCADE,
-        related_name="tipos"
+        TrilhaGamificacao, on_delete=models.CASCADE, related_name="tipos"
     )
-
-    tipo = models.CharField(
-        _("Tipo"),
-        max_length=3,
-        choices=Tipo.choices,
-    )
-
+    tipo = models.CharField(_("Tipo"), max_length=3, choices=Tipo.choices)
     icone = models.ImageField(
-        _("Ícone"),
-        upload_to='gamificacao/icones/',
-        blank=True,
-        null=True,
+        _("Ícone"), upload_to="gamificacao/icones/", blank=True, null=True
     )
-
-    descricao = models.TextField(
-        _("Descrição"),
-        blank=True,
-    )
+    descricao = models.TextField(_("Descrição"), blank=True)
 
     class Meta:
         verbose_name = _("Tipo de gamificação")
         verbose_name_plural = _("Tipos de gamificação")
         constraints = [
             models.UniqueConstraint(
-                fields=["trilha", "tipo"],
-                name="unique_tipo_por_trilha"
+                fields=["trilha", "tipo"], name="unique_tipo_por_trilha"
             )
         ]
         ordering = ["tipo"]
 
     def __str__(self):
         return f"{self.get_tipo_display()} — {self.trilha.name}"
-    
+
+
 class Gamificacao(models.Model):
     titulo = models.CharField(
         _("Título"),
         max_length=150,
         help_text=_("Nome da gamificação ou conquista"),
     )
-
     tipo = models.ForeignKey(
         "TipoGamificacao",
         on_delete=models.PROTECT,
         related_name="gamificacoes",
         verbose_name=_("Tipo"),
     )
-
     trilha = models.ForeignKey(
         "TrilhaGamificacao",
         on_delete=models.CASCADE,
         related_name="gamificacoes",
         verbose_name=_("Trilha"),
     )
-
     pontos = models.PositiveIntegerField(
         _("Pontos"),
         default=0,
         help_text=_("Quantidade de pontos concedidos"),
     )
+
     def clean(self):
         if self.tipo.trilha != self.trilha:
-           raise ValidationError(
-             _("O tipo de gamificação deve pertencer à mesma trilha.")
-        )
+            raise ValidationError(
+                _("O tipo de gamificação deve pertencer à mesma trilha.")
+            )
 
     def save(self, *args, **kwargs):
         self.full_clean()
@@ -513,37 +478,34 @@ class Gamificacao(models.Model):
 
     def __str__(self):
         return f"{self.titulo} — {self.trilha.name}"
-    
-class UsuarioGamificacao(models.Model):
-    user = models.ForeignKey(
-    User,
-    on_delete=models.CASCADE,
-    related_name="gamificacoes_recebidas",
-    verbose_name=_("Usuário"),
-    )
 
+
+class UsuarioGamificacao(models.Model):
+    """
+    Registro de posse de conquistas do usuário.
+    NÃO representa saldo de pontos — o saldo é calculado exclusivamente
+    pelo PointHistory.
+    """
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="gamificacoes_recebidas",
+        verbose_name=_("Usuário"),
+    )
     gamificacao = models.ForeignKey(
-    Gamificacao,
-    on_delete=models.CASCADE,
-    related_name="usuarios",
-    verbose_name=_("Gamificação"),
+        Gamificacao,
+        on_delete=models.CASCADE,
+        related_name="usuarios",
+        verbose_name=_("Gamificação"),
     )
-    
-    data_concedida = models.DateTimeField(
-    _("Data concedida"),
-    auto_now_add=True,
-    )
+    data_concedida = models.DateTimeField(_("Data concedida"), auto_now_add=True)
 
     class Meta:
         unique_together = ["user", "gamificacao"]
 
-## Contéudo do model Evento
+
 class Campus(models.Model):
-    nome = models.CharField(
-        _("Nome"),
-        max_length=100,
-        unique=True
-    )
+    nome = models.CharField(_("Nome"), max_length=100, unique=True)
 
     class Meta:
         verbose_name = _("Campus")
@@ -553,36 +515,19 @@ class Campus(models.Model):
     def __str__(self):
         return self.nome
 
+
 class Evento(models.Model):
     class TipoEvento(models.TextChoices):
         EXPOTEC = "EXP", _("EXPOTEC")
         SEMADEC = "SEM", _("SEMADEC")
         OUTRO = "OUT", _("Outro")
 
-    nome = models.CharField(
-        _("Nome"),
-        max_length=150
-    )
-
-    campus = models.ManyToManyField(
-        Campus,
-        verbose_name=_("Campus"),
-        related_name="eventos"
-    )
-
-    tipo = models.CharField(
-    _("Tipo"),
-    max_length=3,
-    choices=TipoEvento.choices
-)
-
+    nome = models.CharField(_("Nome"), max_length=150)
+    campus = models.ManyToManyField(Campus, verbose_name=_("Campus"), related_name="eventos")
+    tipo = models.CharField(_("Tipo"), max_length=3, choices=TipoEvento.choices)
     data_inicio = models.DateTimeField(_("Data de Início"))
     data_fim = models.DateTimeField(_("Data de Fim"))
-
-    descricao = models.TextField(
-        _("Descrição"),
-        blank=True
-    )
+    descricao = models.TextField(_("Descrição"), blank=True)
 
     class Meta:
         verbose_name = _("Evento")
@@ -591,22 +536,24 @@ class Evento(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.get_tipo_display()})"
+
     def clean(self):
         if self.data_inicio and self.data_fim:
             if self.data_fim < self.data_inicio:
                 raise ValidationError(
                     _("A data de fim não pode ser anterior à data de início.")
                 )
+
     def save(self, *args, **kwargs):
         self.full_clean()
         super().save(*args, **kwargs)
+
+
 class PointHistory(models.Model):
     """
     Registro imutável de cada crédito ou débito de pontuação.
-    Garante que o histórico seja preservado mesmo quando UsuarioGamificacao
-    for removido.
+    É a fonte única de verdade para o saldo de pontos do usuário.
     """
-
     class TipoMovimento(models.TextChoices):
         CREDITO = "CRD", _("Crédito")
         DEBITO = "DEB", _("Débito")
@@ -622,12 +569,10 @@ class PointHistory(models.Model):
         on_delete=models.CASCADE,
         related_name="point_history",
         verbose_name=_("Gamificação"),
+        null=True,
+        blank=True,
     )
-    tipo = models.CharField(
-        _("Tipo"),
-        max_length=3,
-        choices=TipoMovimento.choices,
-    )
+    tipo = models.CharField(_("Tipo"), max_length=3, choices=TipoMovimento.choices)
     pontos = models.IntegerField(
         _("Pontos"),
         help_text=_("Positivo para crédito, negativo para débito."),
@@ -646,16 +591,12 @@ class PointHistory(models.Model):
 
     def __str__(self):
         sinal = "+" if self.tipo == self.TipoMovimento.CREDITO else "-"
-        return f"{self.user} | {sinal}{self.pontos}pts | {self.gamificacao}"
+        gamificacao_str = self.gamificacao or "Troca de brinde"
+        return f"{self.user} | {sinal}{self.pontos}pts | {gamificacao_str}"
 
 
 class Nivel(models.Model):
-    nome = models.CharField(
-        max_length=100,
-        unique=True,
-        verbose_name="Nome"
-    )
-
+    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome")
     pontos_minimos = models.PositiveIntegerField(
         _("Pontos mínimos"),
         default=0,
@@ -667,9 +608,10 @@ class Nivel(models.Model):
         return self.nome
 
     class Meta:
-        ordering = ['pontos_minimos']
+        ordering = ["pontos_minimos"]
         verbose_name = "Nível"
         verbose_name_plural = "Níveis"
+
 
 class PerfilGamificado(models.Model):
     user = models.OneToOneField(
@@ -678,7 +620,6 @@ class PerfilGamificado(models.Model):
         related_name="perfil_gamificado",
         verbose_name=_("Usuário"),
     )
-
     nivel = models.ForeignKey(
         Nivel,
         on_delete=models.SET_NULL,
@@ -687,17 +628,124 @@ class PerfilGamificado(models.Model):
         null=True,
         blank=True,
     )
-
     titulo = models.CharField(
-        max_length=155,
-        verbose_name=_("Titulo"),
-        blank=True,
-        null=True,
+        max_length=155, verbose_name=_("Titulo"), blank=True, null=True
     )
 
     def __str__(self):
         return f"{self.user} - {self.nivel}"
 
     class Meta:
-        verbose_name="Perfil Gamificado"
-        verbose_name_plural="Perfis Gamificados"
+        verbose_name = "Perfil Gamificado"
+        verbose_name_plural = "Perfis Gamificados"
+
+
+class Brinde(models.Model):
+    """
+    Representa um brinde disponível na loja de recompensas de um evento.
+    O estoque é controlado numericamente por quantidade_disponivel.
+    """
+    evento = models.ForeignKey(
+        "Evento",
+        on_delete=models.CASCADE,
+        related_name="brindes",
+        verbose_name=_("Evento"),
+        help_text=_("Evento ao qual este brinde pertence."),
+    )
+    nome = models.CharField(_("Nome"), max_length=255)
+    descricao = models.TextField(_("Descrição"), blank=True)
+    pontos_necessarios = models.PositiveIntegerField(
+        _("Pontos necessários"),
+        help_text=_("Custo em pontos por unidade deste brinde."),
+    )
+    quantidade_disponivel = models.PositiveIntegerField(
+        _("Quantidade disponível"),
+        help_text=_("Estoque total disponível para troca."),
+    )
+    data_validade = models.DateField(_("Data de validade"), null=True, blank=True)
+    ativo = models.BooleanField(_("Ativo"), default=True)
+    criado_em = models.DateTimeField(_("Criado em"), auto_now_add=True)
+
+    @property
+    def disponivel(self):
+        """Verifica se o brinde pode ser trocado no momento."""
+        if not self.ativo or self.quantidade_disponivel <= 0:
+            return False
+        if self.data_validade and self.data_validade < timezone.now().date():
+            return False
+        return True
+
+    class Meta:
+        verbose_name = _("Brinde")
+        verbose_name_plural = _("Brindes")
+        ordering = ["pontos_necessarios"]
+
+    def __str__(self):
+        return f"{self.nome} ({self.pontos_necessarios} pts/un)"
+
+
+class Troca(models.Model):
+    """
+    Cabeçalho de uma transação de troca de pontos por brindes.
+    Agrupa um ou mais itens trocados de uma só vez pelo usuário.
+    """
+    usuario = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="trocas",
+        verbose_name=_("Usuário"),
+    )
+    pontos_gastos = models.PositiveIntegerField(
+        _("Pontos gastos"),
+        help_text=_("Total de pontos gastos nesta troca (soma de todos os itens)."),
+    )
+    data = models.DateTimeField(_("Data da troca"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Troca")
+        verbose_name_plural = _("Trocas")
+        ordering = ["-data"]
+
+    def __str__(self):
+        return f"Troca #{self.pk} — {self.usuario} ({self.pontos_gastos} pts)"
+
+
+class ItemRecompensa(models.Model):
+    """
+    Representa cada linha de uma troca — um brinde específico e sua quantidade.
+    É o registro de débito no estoque do brinde.
+    Uma troca pode ter múltiplos itens (brindes diferentes ou quantidades > 1).
+    """
+    troca = models.ForeignKey(
+        Troca,
+        on_delete=models.CASCADE,
+        related_name="itens",
+        verbose_name=_("Troca"),
+    )
+    brinde = models.ForeignKey(
+        Brinde,
+        on_delete=models.PROTECT,
+        related_name="itens",
+        verbose_name=_("Brinde"),
+    )
+    quantidade = models.PositiveIntegerField(
+        _("Quantidade"),
+        default=1,
+        help_text=_("Quantidade de unidades deste brinde nesta troca."),
+    )
+    pontos_unitarios = models.PositiveIntegerField(
+        _("Pontos unitários"),
+        help_text=_("Snapshot do custo por unidade no momento da troca."),
+    )
+
+    @property
+    def pontos_total(self):
+        """Total de pontos gastos neste item (quantidade × pontos unitários)."""
+        return self.quantidade * self.pontos_unitarios
+
+    class Meta:
+        verbose_name = _("Item de Recompensa")
+        verbose_name_plural = _("Itens de Recompensa")
+
+    def __str__(self):
+        return f"{self.quantidade}x {self.brinde.nome} — Troca #{self.troca.pk}"
