@@ -1,0 +1,208 @@
+{% extends "presente/private_base.html" %}
+
+{% block title %}Loja de Brindes{% endblock %}
+
+{% block page_title %}Loja de Brindes{% endblock %}
+
+{% block crumb %}
+{{ block.super }}
+<li class="breadcrumb-item active" aria-current="page">Loja</li>
+{% endblock %}
+
+{% block app_content %}
+<div class="container-fluid">
+
+  <!-- Saldo do usuário -->
+  <div class="row mb-4">
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted text-uppercase mb-1">Seus Pontos</h6>
+            <h2 class="mb-0">{{ total_pontos }}</h2>
+          </div>
+          <div class="text-warning" style="font-size: 2.5rem;">
+            <i class="bi bi-star-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    {% if itens_carrinho %}
+    <div class="col-md-4">
+      <div class="card border-success">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted text-uppercase mb-1">Total da Troca</h6>
+            <h2 class="mb-0 text-danger">-{{ total_carrinho }}</h2>
+          </div>
+          <div class="text-success" style="font-size: 2.5rem;">
+            <i class="bi bi-cart-fill"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-4">
+      <div class="card">
+        <div class="card-body d-flex justify-content-between align-items-center">
+          <div>
+            <h6 class="text-muted text-uppercase mb-1">Saldo após troca</h6>
+            <h2 class="mb-0 {% if pontos_apos_troca < 0 %}text-danger{% else %}text-success{% endif %}">
+              {{ pontos_apos_troca }}
+            </h2>
+          </div>
+          <div class="text-secondary" style="font-size: 2.5rem;">
+            <i class="bi bi-wallet2"></i>
+          </div>
+        </div>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="row">
+
+    <!-- Lista de brindes -->
+    <div class="col-lg-8">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-gift"></i>
+            Brindes Disponíveis
+            {% if evento %}<small class="text-muted ms-2">— {{ evento.nome }}</small>{% endif %}
+          </div>
+        </div>
+        <div class="card-body">
+          {% if brindes %}
+          <div class="row g-3">
+            {% for brinde in brindes %}
+            <div class="col-md-6">
+              <div class="card h-100 {% if not brinde.disponivel %}opacity-50{% endif %}">
+                <div class="card-body">
+                  <div class="d-flex justify-content-between align-items-start mb-2">
+                    <h6 class="card-title mb-0">{{ brinde.nome }}</h6>
+                    <span class="badge bg-warning text-dark">
+                      {{ brinde.pontos_necessarios }} pts
+                    </span>
+                  </div>
+
+                  {% if brinde.descricao %}
+                  <p class="card-text text-muted small mb-2">{{ brinde.descricao }}</p>
+                  {% endif %}
+
+                  <div class="d-flex justify-content-between align-items-center mt-3">
+                    <small class="text-muted">
+                      <i class="bi bi-box-seam"></i> {{ brinde.quantidade_disponivel }} disponíveis
+                      {% if brinde.data_validade %}
+                      · válido até {{ brinde.data_validade|date:"d/m/Y" }}
+                      {% endif %}
+                    </small>
+
+                    {% if brinde.disponivel and total_pontos >= brinde.pontos_necessarios %}
+                    <form method="post" action="{% url 'presente:carrinho_adicionar' %}">
+                      {% csrf_token %}
+                      <input type="hidden" name="brinde_pk" value="{{ brinde.pk }}">
+                      <button type="submit" class="btn btn-sm btn-primary">
+                        <i class="bi bi-cart-plus"></i> Adicionar
+                      </button>
+                    </form>
+                    {% elif not brinde.disponivel %}
+                    <span class="badge bg-secondary">Esgotado</span>
+                    {% else %}
+                    <span class="badge bg-danger">Pontos insuficientes</span>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% else %}
+          <div class="text-center text-muted py-5">
+            <i class="bi bi-gift" style="font-size: 3rem;"></i>
+            <p class="mt-3">Nenhum brinde disponível no momento.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Carrinho -->
+    <div class="col-lg-4">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">
+            <i class="bi bi-cart3"></i> Carrinho
+            {% if itens_carrinho %}
+            <span class="badge bg-primary ms-1">{{ itens_carrinho|length }}</span>
+            {% endif %}
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% if itens_carrinho %}
+          <ul class="list-group list-group-flush">
+            {% for item in itens_carrinho %}
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+              <div>
+                <strong>{{ item.brinde.nome }}</strong>
+                <br>
+                <small class="text-muted">
+                  {{ item.quantidade }}x {{ item.brinde.pontos_necessarios }} pts
+                </small>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-warning text-dark">
+                  {{ item.brinde.pontos_necessarios }} pts
+                </span>
+                <form method="post" action="{% url 'presente:carrinho_remover' item.brinde.pk %}">
+                  {% csrf_token %}
+                  <button type="submit" class="btn btn-sm btn-outline-danger">
+                    <i class="bi bi-trash"></i>
+                  </button>
+                </form>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
+
+          <div class="p-3 border-top">
+            <div class="d-flex justify-content-between mb-3">
+              <strong>Total</strong>
+              <strong class="text-danger">{{ total_carrinho }} pts</strong>
+            </div>
+
+            {% if pontos_apos_troca >= 0 %}
+            <form method="post" action="{% url 'presente:troca_confirmar' %}">
+              {% csrf_token %}
+              <button type="submit" class="btn btn-success w-100">
+                <i class="bi bi-check-circle"></i> Confirmar Troca
+              </button>
+            </form>
+            {% else %}
+            <button class="btn btn-secondary w-100" disabled>
+              <i class="bi bi-x-circle"></i> Pontos insuficientes
+            </button>
+            {% endif %}
+          </div>
+
+          {% else %}
+          <div class="text-center text-muted py-4">
+            <i class="bi bi-cart" style="font-size: 2rem;"></i>
+            <p class="mb-0 mt-2 small">Seu carrinho está vazio.</p>
+          </div>
+          {% endif %}
+        </div>
+
+        {% if itens_carrinho %}
+        <div class="card-footer">
+          <a href="{% url 'presente:troca_historico' %}" class="btn btn-outline-secondary btn-sm w-100">
+            <i class="bi bi-clock-history"></i> Ver histórico de trocas
+          </a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+</div>
+{% endblock %}

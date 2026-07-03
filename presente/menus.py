@@ -51,6 +51,22 @@ Menu.add_item("presente",
         weight=5  # controla a ordem
     )
 )
+Menu.add_item("presente",
+    MenuItem(
+        "Loja",
+        reverse("presente:loja"),
+        icon="bi bi-cart3",
+        weight=6  # controla a ordem
+    )
+)
+Menu.add_item("presente",
+    MenuItem(
+        "Meus Brindes",
+        reverse("presente:minhas_recompensas"),
+        icon="bi bi-cart3",
+        weight=6  # controla a ordem
+    )
+)
 # ADMINISTRAÇÃO section starts here (items below appear under "ADMINISTRAÇÃO" header)
 
 Menu.add_item(

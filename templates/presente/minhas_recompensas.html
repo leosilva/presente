@@ -1,0 +1,152 @@
+{% extends "presente/private_base.html" %}
+{% load i18n %}
+
+{% block app_content %}
+<div class="container-fluid">
+
+  {# ── Cards de resumo ── #}
+  <div class="row g-3 mb-4">
+
+    <div class="col-lg-3 col-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted text-uppercase mb-2">{% trans "Pontos disponíveis" %}</h6>
+              <h2 class="mb-0">{{ total_pontos }}</h2>
+            </div>
+            <div class="text-warning" style="font-size: 3rem;">
+              <i class="bi bi-star-fill"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted text-uppercase mb-2">{% trans "Pontos gastos" %}</h6>
+              <h2 class="mb-0">{{ total_gasto }}</h2>
+            </div>
+            <div class="text-danger" style="font-size: 3rem;">
+              <i class="bi bi-arrow-down-circle-fill"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-6">
+      <div class="card h-100">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center">
+            <div>
+              <h6 class="text-muted text-uppercase mb-2">{% trans "Itens resgatados" %}</h6>
+              <h2 class="mb-0">{{ total_itens }}</h2>
+            </div>
+            <div class="text-success" style="font-size: 3rem;">
+              <i class="bi bi-bag-check-fill"></i>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-lg-3 col-6 d-flex align-items-center justify-content-center">
+      <a href="{% url 'presente:loja' %}" class="btn btn-primary btn-lg w-100">
+        <i class="bi bi-shop me-2"></i>{% trans "Ir para a Loja" %}
+      </a>
+    </div>
+
+  </div>
+
+  {# ── Lista de trocas ── #}
+  <div class="row">
+    <div class="col-12">
+
+      {% if trocas %}
+        {% for troca in trocas %}
+        <div class="card card-primary mb-3">
+
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="card-title mb-0">
+              <i class="bi bi-bag me-1"></i>
+              {% trans "Troca" %} #{{ troca.pk }}
+              <span class="text-muted fw-normal ms-2" style="font-size: 0.9rem;">
+                <i class="bi bi-calendar3 me-1"></i>{{ troca.data|date:"d/m/Y H:i" }}
+              </span>
+            </div>
+            <span class="badge bg-danger fs-6">
+              <i class="bi bi-dash-circle me-1"></i>{{ troca.pontos_gastos }} pts
+            </span>
+          </div>
+
+          <div class="card-body p-0">
+            <div class="table-responsive">
+              <table class="table table-striped table-hover mb-0">
+                <thead>
+                  <tr>
+                    <th>{% trans "Brinde" %}</th>
+                    <th>{% trans "Evento" %}</th>
+                    <th class="text-center">{% trans "Qtd." %}</th>
+                    <th class="text-end">{% trans "Pts unitários" %}</th>
+                    <th class="text-end">{% trans "Subtotal" %}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for item in troca.itens.all %}
+                  <tr>
+                    <td class="fw-semibold">{{ item.brinde.nome }}</td>
+                    <td class="text-muted">
+                      {% if item.brinde.evento %}
+                        {{ item.brinde.evento.nome }}
+                      {% else %}
+                        <span class="text-muted">—</span>
+                      {% endif %}
+                    </td>
+                    <td class="text-center">
+                      <span class="badge bg-secondary">× {{ item.quantidade }}</span>
+                    </td>
+                    <td class="text-end text-muted">{{ item.pontos_unitarios }} pts</td>
+                    <td class="text-end fw-semibold">{{ item.pontos_total }} pts</td>
+                  </tr>
+                  {% endfor %}
+                </tbody>
+                <tfoot>
+                  <tr class="table-light">
+                    <td colspan="4" class="text-end fw-bold">{% trans "Total desta troca:" %}</td>
+                    <td class="text-end fw-bold text-danger">{{ troca.pontos_gastos }} pts</td>
+                  </tr>
+                </tfoot>
+              </table>
+            </div>
+          </div>
+
+        </div>
+        {% endfor %}
+
+      {% else %}
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="text-muted mb-3" style="font-size: 3rem;">
+            <i class="bi bi-bag-x"></i>
+          </div>
+          <h5 class="mb-1">{% trans "Nenhuma recompensa ainda" %}</h5>
+          <p class="text-muted mb-4">
+            {% trans "Você ainda não realizou nenhuma troca. Acumule pontos e visite a loja!" %}
+          </p>
+          <a href="{% url 'presente:loja' %}" class="btn btn-primary">
+            <i class="bi bi-shop me-1"></i>{% trans "Visitar a Loja" %}
+          </a>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+
+</div>
+{% endblock %}

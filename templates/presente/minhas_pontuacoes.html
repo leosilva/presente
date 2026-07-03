@@ -22,41 +22,53 @@
     </div>
   </div>
 
-  <!-- Lista de conquistas -->
+  <!-- Histórico completo de movimentações -->
   <div class="row mt-4">
     <div class="col-12">
       <div class="card card-primary">
         <div class="card-header">
           <div class="card-title">
-            <i class="bi bi-trophy"></i> Minhas Conquistas
+            <i class="bi bi-clock-history"></i> Histórico de Pontos
           </div>
         </div>
 
         <div class="card-body p-0">
-          {% if gamificacoes_usuario %}
+          {% if historico %}
           <div class="table-responsive">
             <table class="table table-striped table-hover mb-0">
               <thead>
                 <tr>
-                  <th>Título</th>
+                  <th>Descrição</th>
                   <th>Tipo</th>
-                  <th>Trilha</th>
                   <th>Pontos</th>
                   <th>Data</th>
                 </tr>
               </thead>
               <tbody>
-                {% for ug in gamificacoes_usuario %}
+                {% for movimento in historico %}
                 <tr>
-                  <td>{{ ug.gamificacao.titulo }}</td>
-                  <td>{{ ug.gamificacao.tipo.get_tipo_display }}</td>
-                  <td>{{ ug.gamificacao.trilha.name }}</td>
                   <td>
-                    <span class="badge bg-success">
-                      +{{ ug.gamificacao.pontos }}
-                    </span>
+                    {% if movimento.gamificacao %}
+                      {{ movimento.gamificacao.titulo }}
+                    {% else %}
+                      {{ movimento.motivo }}
+                    {% endif %}
                   </td>
-                  <td>{{ ug.data_concedida|date:"d/m/Y H:i" }}</td>
+                  <td>
+                    {% if movimento.tipo == "CRD" %}
+                      <span class="badge bg-success">Crédito</span>
+                    {% else %}
+                      <span class="badge bg-danger">Débito</span>
+                    {% endif %}
+                  </td>
+                  <td>
+                    {% if movimento.tipo == "CRD" %}
+                      <span class="badge bg-success">+{{ movimento.pontos }}</span>
+                    {% else %}
+                      <span class="badge bg-danger">{{ movimento.pontos }}</span>
+                    {% endif %}
+                  </td>
+                  <td>{{ movimento.criado_em|date:"d/m/Y H:i" }}</td>
                 </tr>
                 {% endfor %}
               </tbody>
