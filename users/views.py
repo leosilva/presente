@@ -23,6 +23,7 @@ from .tables import UserTable
 from .filters import UserFilter
 from presente.models import PerfilGamificado, UsuarioGamificacao, Nivel, TrilhaGamificacao
 from presente.services import PointService
+from django.db.models import Max
 
 User = get_user_model() 
 
@@ -90,23 +91,21 @@ class UserProfileView(LoginRequiredMixin, PageTitleMixin, TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-            
-        # Prefetch social accounts for the current user
-        user = User.objects.prefetch_related("socialaccount_set").get(
-            pk=self.request.user.pk
-        )
 
+        user = User.objects.prefetch_related("socialaccount_set").get(pk=self.request.user.pk)
         context["user"] = user
+
         my_points = PointService.calculate_user_point(self.request.user)
         context["my_points"] = my_points
+
         perfil = PerfilGamificado.objects.filter(user=self.request.user).first()
         context["perfil"] = perfil
         nivel_atual = perfil.nivel if perfil else None
-        
+
         if nivel_atual:
             proximo_nivel = Nivel.objects.filter(pontos_minimos__gt=nivel_atual.pontos_minimos).first()
         else:
-            proximo_nivel=None
+            proximo_nivel = None
 
         context["proximo_nivel"] = proximo_nivel
 
@@ -115,35 +114,80 @@ class UserProfileView(LoginRequiredMixin, PageTitleMixin, TemplateView):
         elif not proximo_nivel:
             percentual = 100
         else:
-            percentual = (my_points - nivel_atual.pontos_minimos) * 100 / (proximo_nivel.pontos_minimos - nivel_atual.pontos_minimos)
-        
-        context["percentual"] = percentual
+            percentual = (
+                (my_points - nivel_atual.pontos_minimos)
+                * 100
+                / (proximo_nivel.pontos_minimos - nivel_atual.pontos_minimos)
+            )
 
+        context["percentual"] = percentual
         offset = round(408 * (1 - percentual / 100), 1)
         context["offset"] = str(offset).replace(",", ".")
 
-        trilhas_completas = TrilhaGamificacao.objects.filter(gamificacao_bonus__usuarios__user=self.request.user)
+        context["user_level"] = (
+            getattr(nivel_atual, "nivel", None)
+            or getattr(nivel_atual, "nome", None)
+            or str(nivel_atual)
+            if nivel_atual
+            else 1
+        )
+        context["level_progress"] = percentual / 100
+        context["current_level_points"] = max(
+            0, my_points - (nivel_atual.pontos_minimos if nivel_atual else 0)
+        )
+        context["next_level_points"] = (
+            proximo_nivel.pontos_minimos - nivel_atual.pontos_minimos
+            if nivel_atual and proximo_nivel
+            else 0
+        )
+
+        trilhas_completas = TrilhaGamificacao.objects.filter(
+            gamificacao_bonus__usuarios__user=self.request.user
+        )
         context["trilhas_completas"] = trilhas_completas
+        context["trilhas"] = trilhas_completas
 
-        context["total_badges"] = UsuarioGamificacao.objects.filter(
-            user=self.request.user,
-            gamificacao__tipo__tipo="BDG"
-        ).count()
-
-        context["total_trofeus"] = UsuarioGamificacao.objects.filter(
-            user=self.request.user,
-            gamificacao__tipo__tipo="TRF"
-        ).count()
-
-        context["total_medalhas"] = UsuarioGamificacao.objects.filter(
-            user=self.request.user,
-            gamificacao__tipo__tipo="MDL"
-        ).count()
-
-        context["conquistas"] = UsuarioGamificacao.objects.filter(
+        # todas as conquistas do usuário (mais recentes primeiro)
+        conquistas_qs = UsuarioGamificacao.objects.filter(
             user=self.request.user
-        ).select_related('gamificacao', 'gamificacao__tipo', 'gamificacao__trilha')
-        
+        ).select_related("gamificacao__tipo").order_by("-id")
+        context["conquistas"] = conquistas_qs
+
+        # separa por tipo (reusar esses QS para contagem)
+        badges_qs = conquistas_qs.filter(gamificacao__tipo__tipo="BDG")
+        trofeus_qs = conquistas_qs.filter(gamificacao__tipo__tipo="TRF")
+        medalhas_qs = conquistas_qs.filter(gamificacao__tipo__tipo="MDL")
+
+        # garantir totais consistentes com os mesmo QuerySets
+        context["total_badges"] = badges_qs.count()
+        context["total_trofeus"] = trofeus_qs.count()
+        context["total_medalhas"] = medalhas_qs.count()
+
+        # gera lista de cards com os tipos que existem, ordenada pelo item mais recente (maior id -> mais novo)
+        cards = []
+        mapping = {
+            "BDG": {"label": "Badges", "icon": "award-fill"},
+            "TRF": {"label": "Troféus", "icon": "trophy-fill"},
+            "MDL": {"label": "Medalhas", "icon": "medal-fill"},
+        }
+        type_map_qs = {"BDG": badges_qs, "TRF": trofeus_qs, "MDL": medalhas_qs}
+        for tipo, meta in mapping.items():
+            qs = type_map_qs[tipo]
+            if qs.exists():
+                latest = qs.first()
+                cards.append({
+                    "tipo": tipo,
+                    "label": meta["label"],
+                    "icon": meta["icon"],
+                    "items": qs,           # QuerySet ordenado (mais recente primeiro)
+                    "latest_id": getattr(latest, "pk", 0),
+                    "count": qs.count(),
+                })
+
+        # ordenar cards pelo latest_id desc (mais recente à esquerda)
+        cards.sort(key=lambda x: x["latest_id"], reverse=True)
+        context["premiacao_cards"] = cards
+
         return context
 
 
