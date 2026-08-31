@@ -17,6 +17,7 @@ from .models import (
     Brinde,
     Troca,
     ItemRecompensa,
+    Conquista
 )
 
 
@@ -167,3 +168,7 @@ class TrocaAdmin(admin.ModelAdmin):
         return obj.itens.count()
 
     total_itens.short_description = "Itens"
+
+@admin.register(Conquista)
+class ConquistaAdmin(admin.ModelAdmin):
+    list_display = ["nome", "descricao", "icone", "pontos", "status"]

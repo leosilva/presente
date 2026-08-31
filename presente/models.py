@@ -749,3 +749,30 @@ class ItemRecompensa(models.Model):
 
     def __str__(self):
         return f"{self.quantidade}x {self.brinde.nome} — Troca #{self.troca.pk}"
+
+
+class Conquista(models.Model):
+    nome = models.CharField(
+        _("Nome Conquista"),
+        max_length=155    
+    )
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+        help_text=_("Descrição da Conquista")
+    )
+    icone = models.ImageField(
+        _("Ícone"),
+        upload_to="gamificacao/icones/",
+        blank=True,
+        null=True
+    )
+    pontos = models.PositiveIntegerField(
+        _("Pontos"),
+        default=0,
+        help_text=_("Quantidade de pontos da conquista")
+    )
+    status = models.BooleanField(
+        _("Ativo"),
+        default=True
+    )
