@@ -26,6 +26,7 @@ class PointService:
     # ──────────────────────────────────────────────────────────────
 
     @classmethod
+    @transaction.atomic
     def debit_gamificacao(cls, user, gamificacao, motivo=""):
         deleted, _ = UsuarioGamificacao.objects.filter(
             user=user, gamificacao=gamificacao
@@ -44,6 +45,7 @@ class PointService:
         return deleted > 0
 
     @classmethod
+    @transaction.atomic
     def credit_gamificacao(cls, user, gamificacao, motivo=""):
         obj, created = UsuarioGamificacao.objects.get_or_create(
             user=user,
@@ -141,17 +143,39 @@ class PointService:
         cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo)
 
     @classmethod
-    def _on_gamificacao_updated(cls, gamificacao):
-        atividades = Activity.objects.filter(
+    @transaction.atomic #faz o Django tratar tudo dentro da função como uma transação de banco única: ou todas as operações de escrita são commitadas, ou, se qualquer exceção for levantada em qualquer ponto, todas são revertidas (rollback) — nenhuma fica parcialmente aplicada.
+    def _on_gamificacao_updated(cls, gamificacao, pontos_anterior):
+        if pontos_anterior == gamificacao.pontos:
+            return
+
+        tem_atividade_ativa = Activity.objects.filter(
             gamificacao=gamificacao,
             start_time__lte=timezone.now(),
             end_time__gte=timezone.now(),
-        )
-        for atividade in atividades:
-            usuarios = UsuarioGamificacao.objects.filter(gamificacao=gamificacao)
-            for ug in usuarios:
-                cls.debit_gamificacao(ug.user, gamificacao)
-                cls.credit_gamificacao(ug.user, gamificacao)
+        ).exists()
+        if not tem_atividade_ativa:
+            return
+
+        usuarios = UsuarioGamificacao.objects.filter(
+            gamificacao=gamificacao
+        ).select_related("user")
+
+        for ug in usuarios:
+            PointHistory.objects.create(
+                user=ug.user,
+                gamificacao=gamificacao,
+                tipo=PointHistory.TipoMovimento.DEBITO,
+                pontos=-pontos_anterior,
+                motivo=f"Ajuste de pontuação — {gamificacao.titulo} (valor anterior removido)",
+            )
+            PointHistory.objects.create(
+                user=ug.user,
+                gamificacao=gamificacao,
+                tipo=PointHistory.TipoMovimento.CREDITO,
+                pontos=gamificacao.pontos,
+                motivo=f"Ajuste de pontuação — {gamificacao.titulo} (novo valor aplicado)",
+            )
+            cls._update_user_level(ug.user)
 
     # ──────────────────────────────────────────────────────────────
     # Bônus de trilha
