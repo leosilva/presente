@@ -748,3 +748,69 @@ class ItemRecompensa(models.Model):
 
     def __str__(self):
         return f"{self.quantidade}x {self.brinde.nome} — Troca #{self.troca.pk}"
+
+class Missao(models.Model):
+    class Tipo(models.TextChoices):
+        FREQUENCIA = "FREQ", _("Frequência")
+        SEQUENCIA = "SEQ", _("Sequência de presenças")
+        DIVERSIDADE = "DIV", _("Diversidade de áreas")
+        OUTRO = "OUT", _("Outro")
+
+    titulo = models.CharField(_("Título"), max_length=150)
+    descricao = models.TextField(_("Descrição"), blank=True)
+    tipo = models.CharField(_("Tipo"), max_length=4, choices=Tipo.choices, default=Tipo.OUTRO)
+    meta = models.PositiveIntegerField(
+        _("Meta"),
+        default=1,
+        help_text=_("Valor necessário para completar a missão (ex: nº de presenças)"),
+    )
+    gamificacao = models.ForeignKey(
+        Gamificacao,
+        on_delete=models.PROTECT,
+        related_name="missoes",
+        verbose_name=_("Gamificação concedida"),
+        help_text=_("Badge/troféu/medalha concedido ao completar a missão."),
+    )
+    ativa = models.BooleanField(_("Ativa"), default=True)
+    data_inicio = models.DateField(_("Início"), null=True, blank=True)
+    data_fim = models.DateField(_("Fim"), null=True, blank=True)
+    criada_em = models.DateTimeField(_("Criada em"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Missão")
+        verbose_name_plural = _("Missões")
+        ordering = ["-criada_em"]
+
+    def __str__(self):
+        return self.titulo
+
+
+class MissaoProgresso(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="missoes_progresso",
+        verbose_name=_("Usuário"),
+    )
+    missao = models.ForeignKey(
+        Missao,
+        on_delete=models.CASCADE,
+        related_name="progresso_usuarios",
+        verbose_name=_("Missão"),
+    )
+    progresso = models.PositiveIntegerField(_("Progresso"), default=0)
+    concluida_em = models.DateTimeField(_("Concluída em"), null=True, blank=True)
+
+    class Meta:
+        verbose_name = _("Progresso de Missão")
+        verbose_name_plural = _("Progressos de Missão")
+        constraints = [
+            models.UniqueConstraint(fields=["user", "missao"], name="unique_missao_por_usuario")
+        ]
+
+    @property
+    def concluida(self):
+        return self.concluida_em is not None
+
+    def __str__(self):
+        return f"{self.user} - {self.missao} ({self.progresso}/{self.missao.meta})"

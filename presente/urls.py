@@ -97,4 +97,6 @@ urlpatterns = [
     path("loja/confirmar/", views.TrocaConfirmarView.as_view(), name="troca_confirmar"),
     path("loja/historico/", views.MinhasRecompensasView.as_view(), name="troca_historico"),
     path("minhas-recompensas/", views.MinhasRecompensasView.as_view(), name="minhas_recompensas"),
+    path("minhas-trilhas/", views.MinhasTrilhasView.as_view(), name="minhas_trilhas"),
+    path("minhas-missoes/", views.MinhasMissoesView.as_view(), name="minhas_missoes"),
 ]
