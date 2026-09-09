@@ -1,0 +1,69 @@
+{% extends "presente/private_base.html" %}
+{% load i18n %}
+
+{% block app_content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+
+      {% if trilhas %}
+        {% for item in trilhas %}
+        <div class="card card-primary mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="card-title mb-0">
+              <i class="bi bi-signpost-split me-1"></i>
+              {{ item.trilha.name }}
+            </div>
+            {% if item.concluida %}
+            <span class="badge bg-success fs-6">
+              <i class="bi bi-check-circle-fill me-1"></i>{% trans "Concluída" %}
+            </span>
+            {% else %}
+            <span class="badge bg-secondary fs-6">{{ item.presencas }} / {{ item.meta }}</span>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            {% if item.trilha.descricao %}
+            <p class="text-muted mb-3">{{ item.trilha.descricao }}</p>
+            {% endif %}
+
+            {% widthratio item.presencas item.meta 100 as percentual %}
+            <div class="progress" style="height: 10px;">
+              <div
+                class="progress-bar {% if item.concluida %}bg-success{% else %}bg-primary{% endif %}"
+                role="progressbar"
+                style="width: {% if percentual > 100 %}100{% else %}{{ percentual }}{% endif %}%;"
+                aria-valuenow="{{ item.presencas }}"
+                aria-valuemin="0"
+                aria-valuemax="{{ item.meta }}">
+              </div>
+            </div>
+
+            {% if item.trilha.gamificacao_bonus %}
+            <div class="mt-3 d-flex align-items-center gap-2 text-muted" style="font-size: 0.9rem;">
+              <i class="bi bi-gift-fill"></i>
+              {% blocktrans with titulo=item.trilha.gamificacao_bonus.titulo pontos=item.trilha.gamificacao_bonus.pontos %}
+              Recompensa: {{ titulo }} (+{{ pontos }} pts)
+              {% endblocktrans %}
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+
+      {% else %}
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="text-muted mb-3" style="font-size: 3rem;">
+            <i class="bi bi-signpost-split"></i>
+          </div>
+          <h5 class="mb-1">{% trans "Nenhuma trilha disponível" %}</h5>
+          <p class="text-muted mb-0">{% trans "Ainda não há trilhas de gamificação cadastradas." %}</p>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}

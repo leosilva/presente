@@ -39,10 +39,13 @@ from .models import (
     Network,
     Evento,
     UsuarioGamificacao,
+    TrilhaGamificacao,
     AttendanceRemovalLog,
     PointHistory,
     Brinde,
-    Troca
+    Troca,
+    Missao,
+    MissaoProgresso
     )
 from .services import PointService,TrocaService
 from .tables import (
@@ -982,4 +985,60 @@ class MinhasRecompensasView(LoginRequiredMixin, TemplateView):
         context["total_gasto"] = total_gasto
         context["total_itens"] = total_itens
         context["total_pontos"] = PointService.calculate_user_point(self.request.user)
+        return context
+class MinhasTrilhasView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/minhas_trilhas.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        trilhas = TrilhaGamificacao.objects.select_related("gamificacao_bonus")
+
+        dados = []
+        for trilha in trilhas:
+            presencas = Attendance.objects.filter(
+                user=user, activity__trilha=trilha
+            ).count()
+            concluida = (
+                UsuarioGamificacao.objects.filter(
+                    user=user, gamificacao=trilha.gamificacao_bonus
+                ).exists()
+                if trilha.gamificacao_bonus
+                else False
+            )
+            dados.append({
+                "trilha": trilha,
+                "presencas": presencas,
+                "meta": trilha.minimo_atividades,
+                "concluida": concluida,
+            })
+
+        context["trilhas"] = dados
+        return context
+
+
+class MinhasMissoesView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/minhas_missoes.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        missoes = Missao.objects.filter(ativa=True).select_related("gamificacao")
+        progressos = {
+            p.missao_id: p
+            for p in MissaoProgresso.objects.filter(user=user, missao__in=missoes)
+        }
+
+        dados = []
+        for missao in missoes:
+            progresso = progressos.get(missao.id)
+            dados.append({
+                "missao": missao,
+                "progresso": progresso.progresso if progresso else 0,
+                "concluida": progresso.concluida if progresso else False,
+            })
+
+        context["missoes"] = dados
         return context

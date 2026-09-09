@@ -17,6 +17,8 @@ from .models import (
     Brinde,
     Troca,
     ItemRecompensa,
+    Missao,
+    MissaoProgresso,
 )
 
 
@@ -167,3 +169,16 @@ class TrocaAdmin(admin.ModelAdmin):
         return obj.itens.count()
 
     total_itens.short_description = "Itens"
+@admin.register(Missao)
+class MissaoAdmin(admin.ModelAdmin):
+    list_display = ["titulo", "tipo", "meta", "gamificacao", "ativa", "data_inicio", "data_fim"]
+    list_filter = ["tipo", "ativa"]
+    search_fields = ["titulo"]
+
+
+@admin.register(MissaoProgresso)
+class MissaoProgressoAdmin(admin.ModelAdmin):
+    list_display = ["user", "missao", "progresso", "concluida_em"]
+    list_filter = ["missao", "concluida_em"]
+    search_fields = ["user__username", "missao__titulo"]
+    readonly_fields = ["user", "missao", "progresso", "concluida_em"]

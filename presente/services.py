@@ -16,6 +16,8 @@ from .models import (
     Brinde,
     Troca,
     ItemRecompensa,
+    Missao,
+    MissaoProgresso,
 )
 
 
@@ -114,6 +116,7 @@ class PointService:
             cls._check_trilha_bonus(user, attendance.activity.trilha)
 
         cls._check_diversidade_bonus(user, attendance.checked_in_at.date())
+        cls._check_missoes(user)
 
     @classmethod
     def _on_attendance_canceled(cls, attendance, justificativa=""):
@@ -141,6 +144,7 @@ class PointService:
 
         data_checkin = attendance.checked_in_at.date()
         cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo)
+        cls._check_missoes_reversal(user, base_motivo)
 
     @classmethod
     @transaction.atomic #faz o Django tratar tudo dentro da função como uma transação de banco única: ou todas as operações de escrita são commitadas, ou, se qualquer exceção for levantada em qualquer ponto, todas são revertidas (rollback) — nenhuma fica parcialmente aplicada.
@@ -282,7 +286,62 @@ class PointService:
                 f"áreas insuficientes no dia {data}. {base_motivo}"
             )
             cls.debit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo)
+    @classmethod
+    def _check_missoes(cls, user):
+        """
+        Atualiza o progresso de missões de FREQUÊNCIA ativas para o usuário,
+        concedendo a gamificação vinculada quando a meta é atingida.
+        """
+        total_presencas = Attendance.objects.filter(user=user).count()
 
+        missoes_ativas = Missao.objects.filter(
+            ativa=True, tipo=Missao.Tipo.FREQUENCIA
+        ).select_related("gamificacao")
+
+        for missao in missoes_ativas:
+            progresso_obj, _ = MissaoProgresso.objects.get_or_create(
+                user=user, missao=missao
+            )
+
+            if progresso_obj.concluida:
+                continue
+
+            progresso_obj.progresso = total_presencas
+
+            if progresso_obj.progresso >= missao.meta:
+                progresso_obj.concluida_em = timezone.now()
+                progresso_obj.save()
+                cls.credit_gamificacao(
+                    user, missao.gamificacao,
+                    motivo=f"Missão concluída: {missao.titulo}"
+                )
+            else:
+                progresso_obj.save()
+
+    @classmethod
+    def _check_missoes_reversal(cls, user, base_motivo=""):
+        """
+        Recalcula o progresso após remoção de presença; estorna a gamificação
+        de missões que deixaram de atender a meta.
+        """
+        total_presencas = Attendance.objects.filter(user=user).count()
+
+        progresso_qs = MissaoProgresso.objects.filter(
+            user=user, missao__ativa=True, missao__tipo=Missao.Tipo.FREQUENCIA
+        ).select_related("missao", "missao__gamificacao")
+
+        for progresso_obj in progresso_qs:
+            progresso_obj.progresso = total_presencas
+
+            if progresso_obj.concluida and total_presencas < progresso_obj.missao.meta:
+                motivo = (
+                    f"Estorno de missão '{progresso_obj.missao.titulo}' — "
+                    f"presenças insuficientes após remoção. {base_motivo}"
+                )
+                cls.debit_gamificacao(user, progresso_obj.missao.gamificacao, motivo=motivo)
+                progresso_obj.concluida_em = None
+
+            progresso_obj.save()
     # ──────────────────────────────────────────────────────────────
     # Atualização de nível
     # ──────────────────────────────────────────────────────────────
