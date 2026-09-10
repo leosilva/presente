@@ -4,74 +4,328 @@
 {% block extra_head %}
 <style>
   .card {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-}
-
-.card-body {
-  background-color: white !important;
-  border: none !important;
-  border-radius: 0 0 8px 8px;
-}
-
-.card-footer {
-  background-color: white !important;
-  border: none !important;
-  border-radius: 0 0 8px 8px;
-}
-
-.card-header.p-0 {
-  background-color: transparent !important;
-  border-bottom: none !important;
-  padding: 0 16px !important;
-}
-
-.card-header .nav-tabs {
-  border-bottom: 1px solid #dee2e6 !important;
-  background-color: transparent !important;
-  gap: 4px;
-}
-
-.card-header .nav-tabs .nav-link {
-  color: #495057;
-  background-color: transparent !important;
-  border: none !important;
-  border-radius: 0 !important;
-  padding: 10px 16px;
-  font-size: 14px;
-  font-weight: 500;
-  transition: all 0.2s ease;
-  margin-bottom: -1px;
-}
-
-.card-header .nav-tabs .nav-link:hover:not(.active) {
-  background-color: rgba(0,0,0,0.04) !important;
-  color: #212529;
-  border-radius: 8px 8px 0 0 !important;
-}
-
-.card-header .nav-tabs .nav-link.active {
-  background-color: white !important;
-  color: #212529 !important;
-  border: 1px solid #dee2e6 !important;
-  border-bottom: 1px solid white !important;
-  border-radius: 8px 8px 0 0 !important;
-  font-weight: 600;
-}
-
-.card-header .nav-tabs .nav-link.active {
-  border: none !important;
-  border-bottom: 1px solid white !important;
-  box-shadow: none !important;
-}
-
-.card-header .nav-tabs .nav-link:not(.active) {
-  background-color: #f0f0f0 !important;
-  color: #6c757d !important;
-  border-radius: 8px 8px 0 0 !important;
-}
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
   }
+
+  .card-body {
+    background-color: white !important;
+    border: none !important;
+  }
+
+  .card-header.p-0 {
+    background-color: transparent !important;
+    border-bottom: none !important;
+    padding: 0 16px !important;
+  }
+
+  .card-header .nav-tabs {
+    border-bottom: 1px solid #dee2e6 !important;
+    background-color: transparent !important;
+    gap: 4px;
+  }
+
+  .card-header .nav-tabs .nav-link {
+    color: #495057;
+    background-color: transparent !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 10px 16px;
+    font-size: 14px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    margin-bottom: -1px;
+  }
+
+  .card-header .nav-tabs .nav-link:hover:not(.active) {
+    background-color: rgba(0,0,0,0.04) !important;
+    color: #212529;
+    border-radius: 8px 8px 0 0 !important;
+  }
+
+  .card-header .nav-tabs .nav-link.active {
+    background-color: white !important;
+    color: #212529 !important;
+    border: 1px solid #dee2e6 !important;
+    border-bottom: 1px solid white !important;
+    border-radius: 8px 8px 0 0 !important;
+    font-weight: 600;
+  }
+
+  .detail-field {
+    margin-bottom: 1rem;
+  }
+
+  .detail-field .detail-value {
+    font-size: 1rem;
+    font-weight: 600;
+  }
+
+  .stat-card {
+    border: 1px solid #e9ecef;
+    border-radius: 18px;
+    background: #f8f9fa;
+    min-height: 160px;
+    padding: 1.4rem;
+  }
+
+  .stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    background: rgba(13,110,253,.12);
+    color: #0d6efd;
+    font-size: 1.4rem;
+  }
+
+  .stat-card .stat-text {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.25rem;
+  }
+
+  .stat-card .stat-label {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: #6c757d;
+  }
+
+  .stat-card .stat-value {
+    font-size: 2rem;
+    font-weight: 700;
+  }
+
+  .progress-ring {
+    width: 170px;
+    height: 170px;
+    position: relative;
+    margin: 0 auto;
+  }
+
+  .progress-ring svg {
+    transform: rotate(-90deg);
+  }
+
+  .progress-ring circle {
+    fill: transparent;
+    stroke-width: 14;
+    stroke-linecap: round;
+  }
+
+  .progress-ring__bg {
+    stroke: #e9ecef;
+  }
+
+  .progress-ring__circle {
+    stroke: #0d6efd;
+    transition: stroke-dashoffset .35s ease;
+  }
+
+  .progress-ring__label {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-weight: 700;
+  }
+
+  .progress-ring__label span {
+    display: block;
+    font-size: 1rem;
+    color: #6c757d;
+  }
+
+  .accordion .accordion-item {
+    border: 1px solid #e9ecef;
+    border-radius: 18px;
+    background: #ffffff;
+    overflow: hidden;
+    margin-bottom: 1rem;
+  }
+
+  .accordion-button {
+    border: none;
+    background: #f8f9fa;
+    color: #212529;
+    padding: 1rem 1.25rem;
+    font-weight: 600;
+  }
+
+  .accordion-button:not(.collapsed) {
+    background: #e9ecef;
+  }
+
+  .accordion-body {
+    padding: 1rem 1.25rem 1.5rem;
+    background: #ffffff;
+  }
+
+  .badge-card,
+  .trilha-card {
+    border: 1px solid #e9ecef;
+    border-radius: 16px;
+    background: #f8f9fa;
+    min-height: 120px;
+  }
+
+  .badge-card .card-body,
+  .trilha-card .card-body {
+    padding: 1rem;
+  }
+
+  .badge-card .badge-title {
+    font-size: 0.85rem;
+    color: #6c757d;
+  }
+
+  .badge-card .badge-name {
+    font-weight: 700;
+    margin-top: 0.4rem;
+  }
+
+  .badge-meta {
+    margin-top: 0.75rem;
+    display: block;
+  }
+
+  .badge-points {
+    font-weight: 700;
+    color: #0d6efd;
+  }
+
+  .badge-activity {
+    display: block;
+    margin-top: 0.75rem;
+    background: #e9ecef;
+    color: #6c757d;
+    font-size: 0.92rem;
+    border-radius: 12px;
+    padding: 0.65rem 0.9rem;
+    width: 100%;
+  }
+
+  .premiacao-card {
+    border: 1px solid #e9ecef;
+    border-radius: 18px;
+    background: #f8f9fa;
+    min-height: 100%;
+  }
+
+  .premiacao-card-header {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid #dee2e6;
+  }
+
+  .premiacao-card-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    font-size: 1.25rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  }
+
+  .premiacao-card-icon.badge { background: rgba(255,193,7,.16); color: #d39e00; }
+  .premiacao-card-icon.trophy { background: rgba(25,135,84,.12); color: #198754; }
+  .premiacao-card-icon.medal { background: rgba(13,110,253,.12); color: #0d6efd; }
+
+  .premiacao-card-header .label-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 0.12rem;
+  }
+
+  .premiacao-card-header .label-wrap .type-name {
+    font-weight: 800;
+    font-size: 0.98rem;
+    letter-spacing: 0.02em;
+    color: #212529;
+  }
+
+  .premiacao-card-header .label-wrap .type-sub {
+    font-size: 0.78rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+  }
+
+  .premiacao-card-body {
+    display: flex;
+    gap: 1rem;
+    overflow-x: auto;
+    padding: 1rem;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .premiacao-card-body::-webkit-scrollbar { height: 8px; }
+  .premiacao-card-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 8px; }
+
+  .premiacao-item {
+    min-width: 220px;
+    flex: 0 0 auto;
+    border: 1px solid #e9ecef;
+    border-radius: 12px;
+    background: #fff;
+    padding: .75rem;
+  }
+
+  .premiacao-item-title {
+    font-weight: 700;
+    margin-bottom: .35rem;
+    color: #212529;
+  }
+
+  .premiacao-item-points {
+    display: block;
+    font-weight: 800;
+    color: #0d6efd;
+    margin-bottom: 0.6rem;
+    font-size: 1.05rem;
+  }
+
+  .premiacao-item-activity {
+    display: block;
+    margin-top: 0.5rem;
+    background: #f1f3f5;
+    color: #6c757d;
+    font-size: 0.92rem;
+    border-radius: 10px;
+    padding: 0.55rem 0.75rem;
+  }
+
+  /* remove contadores inline */
+  .premiacao-card-header .count { display: none; }
+
+  /* ícone mais destacado (voltando ao estilo anterior) */
+  .premiacao-card-icon {
+    width: 48px;
+    height: 48px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 14px;
+    font-size: 1.25rem;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  }
+
+  /* remove display do contador no header (não renderizar) */
+  .premiacao-card-header .type-sub { display: none; }
+
+  /* pequenos ajustes de espaçamento após mudança */
+  .premiacao-card-header { gap: 0.75rem; padding: 1rem 1.25rem; }
 </style>
 {% endblock %}
 
@@ -83,7 +337,7 @@
 {% block app_content %}
 <div class="container-fluid">
   <div class="row">
-    <div class="col-md-8 col-lg-6 mx-auto">
+    <div class="col-md-10 col-lg-8 mx-auto">
       <div class="card shadow-sm">
         <div class="card-header p-0">
           <ul class="nav nav-tabs card-header-tabs m-0 w-100" role="tablist">
@@ -102,8 +356,6 @@
 
         <div class="card-body">
           <div class="tab-content">
-
-            <!-- Aba Meu Perfil -->
             <div class="tab-pane fade show active" id="perfil">
               <div class="row g-3">
                 <div class="col-12 text-center mb-3">
@@ -116,52 +368,58 @@
                     style="width: 150px; height: 150px; object-fit: cover;"
                   />
                 </div>
+
                 <div class="col-12">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Nome Completo</label>
                     <div class="detail-value">{{ user.get_full_name }}</div>
                   </div>
                 </div>
-                <div class="col-12">
+
+                <div class="col-6">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Email</label>
                     <div class="detail-value">{{ user.email }}</div>
                   </div>
                 </div>
-                <div class="col-12">
+
+                <div class="col-6">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Usuário</label>
                     <div class="detail-value">{{ user.username }}</div>
                   </div>
                 </div>
+
                 {% if user.is_suap_user %}
-                <div class="col-12">
+                <div class="col-6">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Matrícula</label>
                     <div class="detail-value">{{ user.matricula|default:"-" }}</div>
                   </div>
                 </div>
-                <div class="col-12">
+                <div class="col-6">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Campus</label>
                     <div class="detail-value">{{ user.campus|default:"-" }}</div>
                   </div>
                 </div>
                 {% endif %}
+
                 {% if user.type == "ALUNO" %}
-                <div class="col-12">
+                <div class="col-6">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Curso</label>
                     <div class="detail-value">{{ user.curso|default:"-" }}</div>
                   </div>
                 </div>
-                <div class="col-12">
+                <div class="col-6">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Período de Referência</label>
                     <div class="detail-value">{{ user.periodo_referencia|default:"-" }}</div>
                   </div>
                 </div>
                 {% endif %}
+
                 <div class="col-12">
                   <div class="detail-field">
                     <label class="text-muted small text-uppercase mb-1">Tipo</label>
@@ -179,107 +437,147 @@
               </div>
             </div>
 
-            <!-- Aba Minhas Conquistas -->
             <div class="tab-pane fade" id="conquistas">
-              <div class="text-center mb-4">
-                <div class="bg-primary bg-opacity-10 rounded p-3 d-inline-block">
-                  <i class="bi bi-star-fill text-warning" style="font-size: 2rem;"></i>
-                  <div class="fs-3 fw-bold">{{ my_points }}</div>
-                  <div class="text-muted small">Pontos Totais</div>
+              <div class="mb-4">
+                <h5 class="mb-3">Minhas Conquistas</h5>
+
+                <div class="row g-3">
+                  <div class="col-md-4">
+                    <div class="stat-card">
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-warning bg-opacity-10 text-warning">
+                          <i class="bi bi-award-fill"></i>
+                        </div>
+                        <div class="stat-text">
+                          <div class="stat-label">Badges totais</div>
+                          <div class="stat-value">{{ total_badges|default:"0" }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="col-md-4">
+                    <div class="stat-card text-center">
+                      <div class="progress-ring">
+                        <svg width="170" height="170">
+                          <circle class="progress-ring__bg" cx="85" cy="85" r="65" />
+                          <circle class="progress-ring__circle"
+                            cx="85"
+                            cy="85"
+                            r="65"
+                            stroke-dasharray="408"
+                            stroke-dashoffset="{{ offset|default:'408' }}"
+                          />
+                        </svg>
+                        <div class="progress-ring__label">
+                          <div class="fs-4">{{ user_level|default:"1" }}</div>
+                          <span>Nível</span>
+                        </div>
+                      </div>
+                      <div class="mt-3 text-muted small">
+                        {{ current_level_points|default:"0" }} / {{ next_level_points|default:"100" }} pontos
+                      </div>
+                    </div>
+                  </div>
+                  <div class="col-md-4">
+                    <div class="stat-card">
+                      <div class="d-flex align-items-center gap-3">
+                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                          <i class="bi bi-trophy-fill"></i>
+                        </div>
+                        <div class="stat-text">
+                          <div class="stat-label">Troféus totais</div>
+                          <div class="stat-value">{{ total_trofeus|default:"0" }}</div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
               </div>
 
-              <!-- Badges -->
-              <div class="mb-4">
-                <h6 class="border-bottom pb-2 mb-3">
-                  <i class="bi bi-award text-warning"></i> Badges ({{ total_badges }})
-                </h6>
-                {% with conquistas|filter_by_tipo:"BDG" as badges %}
-                  {% if badges %}
-                  <div class="row g-2">
-                    {% for ug in badges %}
-                    <div class="col-6 col-md-4">
-                      <div class="card border-0 bg-light h-100">
-                        <div class="card-body text-center p-2">
-                          {% if ug.gamificacao.tipo.icone %}
-                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
-                          {% else %}
-                            <i class="bi bi-award-fill text-warning" style="font-size: 1.5rem;"></i>
-                          {% endif %}
-                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
-                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
-                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {% endfor %}
-                  </div>
-                  {% else %}
-                  <p class="text-muted text-center py-3">Nenhum badge conquistado ainda.</p>
-                  {% endif %}
-                {% endwith %}
-              </div>
+              <div class="accordion" id="profileAccordion">
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingPremiacoes">
+                    <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePremiacoes" aria-expanded="true" aria-controls="collapsePremiacoes">
+                      Minhas Premiações
+                    </button>
+                  </h2>
 
-              <!-- Troféus -->
-              <div class="mb-4">
-                <h6 class="border-bottom pb-2 mb-3">
-                  <i class="bi bi-trophy text-success"></i> Troféus ({{ total_trofeus }})
-                </h6>
-                {% with conquistas|filter_by_tipo:"TRF" as trofeus %}
-                  {% if trofeus %}
-                  <div class="row g-2">
-                    {% for ug in trofeus %}
-                    <div class="col-6 col-md-4">
-                      <div class="card border-0 bg-light h-100">
-                        <div class="card-body text-center p-2">
-                          {% if ug.gamificacao.tipo.icone %}
-                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
-                          {% else %}
-                            <i class="bi bi-trophy-fill text-success" style="font-size: 1.5rem;"></i>
-                          {% endif %}
-                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
-                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
-                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
-                        </div>
-                      </div>
-                    </div>
-                    {% endfor %}
-                  </div>
-                  {% else %}
-                  <p class="text-muted text-center py-3">Nenhum troféu conquistado ainda.</p>
-                  {% endif %}
-                {% endwith %}
-              </div>
+                  <div id="collapsePremiacoes" class="accordion-collapse collapse show" aria-labelledby="headingPremiacoes" data-bs-parent="#profileAccordion">
+                    <div class="accordion-body">
+                      {% if premiacao_cards %}
+                        <div class="row g-3">
+                          {% for card in premiacao_cards %}
+                            <div class="col-md-4">
+                              <div class="premiacao-card">
+                                <div class="premiacao-card-header">
+                                  <span class="premiacao-card-icon {% if card.tipo == 'BDG' %}badge{% elif card.tipo == 'TRF' %}trophy{% else %}medal{% endif %}">
+                                    <i class="bi bi-{{ card.icon }}"></i>
+                                  </span>
+                                  <div class="label-wrap">
+                                    <div class="type-name">{{ card.label }}</div>
+                                  </div>
+                                </div>
 
-              <!-- Medalhas -->
-              <div class="mb-4">
-                <h6 class="border-bottom pb-2 mb-3">
-                  <i class="bi bi-medal text-info"></i> Medalhas ({{ total_medalhas }})
-                </h6>
-                {% with conquistas|filter_by_tipo:"MDL" as medalhas %}
-                  {% if medalhas %}
-                  <div class="row g-2">
-                    {% for ug in medalhas %}
-                    <div class="col-6 col-md-4">
-                      <div class="card border-0 bg-light h-100">
-                        <div class="card-body text-center p-2">
-                          {% if ug.gamificacao.tipo.icone %}
-                            <img src="{{ ug.gamificacao.tipo.icone.url }}" alt="" style="width: 40px; height: 40px;">
-                          {% else %}
-                            <i class="bi bi-medal-fill text-info" style="font-size: 1.5rem;"></i>
-                          {% endif %}
-                          <div class="small fw-bold mt-1">{{ ug.gamificacao.titulo }}</div>
-                          <div class="text-muted small">{{ ug.gamificacao.trilha.name }}</div>
-                          <span class="badge bg-success">+{{ ug.gamificacao.pontos }}</span>
+                                <div class="premiacao-card-body">
+                                  {% for item in card.items %}
+                                    <div class="premiacao-item">
+                                      <div class="premiacao-item-title">{{ item.gamificacao.nome }}</div>
+                                      <div class="premiacao-item-points">{{ item.gamificacao.pontos|default:"0" }} pontos</div>
+                                      <div class="premiacao-item-activity">
+                                        Atividade:
+                                        {% if item.gamificacao.activities.first %}
+                                          {{ item.gamificacao.activities.first.title }}
+                                        {% else %}
+                                          não disponível
+                                        {% endif %}
+                                      </div>
+                                    </div>
+                                  {% endfor %}
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
                         </div>
-                      </div>
+                      {% else %}
+                        <p class="text-muted mb-0">Nenhuma premiação conquistada ainda.</p>
+                      {% endif %}
                     </div>
-                    {% endfor %}
                   </div>
-                  {% else %}
-                  <p class="text-muted text-center py-3">Nenhuma medalha conquistada ainda.</p>
-                  {% endif %}
-                {% endwith %}
+                </div>
+
+                <!-- Minhas Trilhas (mantido) -->
+                <div class="accordion-item">
+                  <h2 class="accordion-header" id="headingTrilhas">
+                    <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrilhas" aria-expanded="false" aria-controls="collapseTrilhas">
+                      Minhas Trilhas
+                    </button>
+                  </h2>
+                  <div id="collapseTrilhas" class="accordion-collapse collapse" aria-labelledby="headingTrilhas" data-bs-parent="#profileAccordion">
+                    <div class="accordion-body">
+                      {% if trilhas %}
+                        <div class="row g-3">
+                          {% for trilha in trilhas %}
+                            <div class="col-12 col-md-6">
+                              <div class="trilha-card p-3 h-100">
+                                <div class="d-flex align-items-center justify-content-between">
+                                  <div>
+                                    <div class="text-muted small">Trilha</div>
+                                    <div class="fw-bold">{{ trilha.nome }}</div>
+                                  </div>
+                                  <span class="badge bg-success">+{{ trilha.pontos|default:"0" }}</span>
+                                </div>
+                              </div>
+                            </div>
+                          {% endfor %}
+                        </div>
+                      {% else %}
+                        <p class="text-muted mb-0">Nenhuma trilha iniciada ainda.</p>
+                      {% endif %}
+                    </div>
+                  </div>
+                </div>
+
               </div>
             </div>
 
@@ -292,11 +590,9 @@
               <i class="bi bi-arrow-left"></i> Voltar
             </a>
             {% if not user.is_suap_user %}
-            <div class="d-flex gap-2">
-              <a href="{% url 'users:user_profile_change' %}" class="btn btn-primary">
-                <i class="bi bi-pencil"></i> Editar Perfil
-              </a>
-            </div>
+            <a href="{% url 'users:user_profile_change' %}" class="btn btn-primary">
+              <i class="bi bi-pencil"></i> Editar Perfil
+            </a>
             {% else %}
             <div class="text-muted small">
               <i class="bi bi-info-circle"></i> Perfil gerenciado pelo SUAP
