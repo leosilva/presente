@@ -121,8 +121,6 @@ class Activity(models.Model):
         on_delete=models.CASCADE,
         related_name="activities",
         verbose_name=_("Evento"),
-        null=True,
-        blank=True,
     )
     area = models.ForeignKey(
         "Area",
@@ -821,7 +819,7 @@ class ConquistaUsuario(models.Model):
     class Meta:
         constraints = [
             models.UniqueConstraint(
-                fields=["user", "conquista"],
-                name="unique_usuario_conquista"
+                fields=["user", "conquista", "evento"],
+                name="unique_usuario_conquista_evento"
             )
         ]

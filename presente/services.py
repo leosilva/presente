@@ -16,6 +16,8 @@ from .models import (
     Brinde,
     Troca,
     ItemRecompensa,
+    Conquista,
+    ConquistaUsuario,
 )
 
 
@@ -98,20 +100,39 @@ class PointService:
 
     @classmethod
     def _on_attendance_created(cls, attendance):
+        user = attendance.user
+
+        conquistas_atingidas = (
+            ConquistaService.avaliar_conquistas_usuario(user)
+        )
+
         if not attendance.activity:
             return
-        if not attendance.activity.gamificacao:
-            return
 
-        user = attendance.user
-        gamificacao = attendance.activity.gamificacao
-        motivo = f"Presença registrada em: {attendance.activity.title}"
-        cls.credit_gamificacao(user, gamificacao, motivo=motivo)
+        if attendance.activity.gamificacao:
+            gamificacao = attendance.activity.gamificacao
+            motivo = f"Presença registrada em: {attendance.activity.title}"
+            cls.credit_gamificacao(user, gamificacao, motivo=motivo)
+
+        for conquista in conquistas_atingidas:
+            with transaction.atomic():
+                obj, created = ConquistaUsuario.objects.get_or_create(user=user, conquista=conquista, evento=attendance.activity.evento)
+                if created:
+                    PointHistory.objects.create(
+                        user=user,
+                        tipo=PointHistory.TipoMovimento.CREDITO,
+                        pontos=conquista.pontos,
+                        motivo=f"Crédito por desbloqueio de conquista",
+                    )
+                    PointService._update_user_level(user)
 
         if attendance.activity.trilha:
             cls._check_trilha_bonus(user, attendance.activity.trilha)
 
-        cls._check_diversidade_bonus(user, attendance.checked_in_at.date())
+        cls._check_diversidade_bonus(
+            user, 
+            attendance.checked_in_at.date()
+        )
 
     @classmethod
     def _on_attendance_canceled(cls, attendance, justificativa=""):
@@ -498,3 +519,48 @@ class TrocaService:
             raise ValueError(f"Evento desconhecido: {event_name}")
 
         return handler(**kwargs)
+
+class ConquistaService:
+    @classmethod
+    def usuario_atingiu_conquista(cls, user, conquista):
+        if conquista.tipo_regra == Conquista.TipoRegra.PRIMEIRA_PRESENCA:
+            return Attendance.objects.filter(user=user).exists()
+
+        if conquista.tipo_regra == Conquista.TipoRegra.NUMERO_PRESENCAS:
+            total = Attendance.objects.filter(user=user).count()
+            return total >= conquista.valor_necessario
+
+        if conquista.tipo_regra == Conquista.TipoRegra.NUMERO_ATIVIDADES:
+            return (
+                Attendance.objects
+                .filter(user=user)
+                .values("activity_id")
+                .distinct()
+                .count() >= conquista.valor_necessario
+            )
+
+        if conquista.tipo_regra == Conquista.TipoRegra.NUMERO_AREAS_DIFERENTES:
+            total = (
+                Attendance.objects
+                .filter(
+                    user=user, 
+                    activity__area__isnull=False
+                )
+                .values("activity__area")
+                .distinct()
+                .count() >= conquista.valor_necessario
+            )
+            return total >= conquista.valor_necessario
+        
+        return False
+
+    @classmethod
+    def avaliar_conquistas_usuario(cls, user):
+        conquistas = Conquista.objects.filter(status=True)
+        conquistas_atingidas = []
+
+        for conquista in conquistas:
+            if cls.usuario_atingiu_conquista(user, conquista):
+                conquistas_atingidas.append(conquista)
+
+        return conquistas_atingidas
