@@ -751,6 +751,12 @@ class ItemRecompensa(models.Model):
 
 
 class Conquista(models.Model):
+    class TipoRegra(models.TextChoices):
+        NUMERO_PRESENCAS = "NUMERO_PRESENCAS", _("Número de Presenças")
+        NUMERO_AREAS_DIFERENTES = "NUMERO_AREAS_DIFERENTES", _("Número de Áreas Diferentes")
+        NUMERO_ATIVIDADES = "NUMERO_ATIVIDADES", _("Número de Atividades")
+        PRIMEIRA_PRESENCA = "PRIMEIRA_PRESENCA", _("Primeira Presença")
+
     nome = models.CharField(
         _("Nome Conquista"),
         max_length=155    
@@ -766,6 +772,17 @@ class Conquista(models.Model):
         blank=True,
         null=True
     )
+    tipo_regra = models.CharField(
+        _("Tipo da Regra"), 
+        max_length=155, 
+        choices=TipoRegra.choices,
+        default=TipoRegra.PRIMEIRA_PRESENCA,
+    )
+    valor_necessario = models.PositiveIntegerField(
+        _("Valor necessário"),
+        default=1,
+        help_text=_("Valor necessário para alcançar a conquista")
+    )    
     pontos = models.PositiveIntegerField(
         _("Pontos"),
         default=0,
