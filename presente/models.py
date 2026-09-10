@@ -792,3 +792,36 @@ class Conquista(models.Model):
         _("Ativo"),
         default=True
     )
+
+# Modelo que representa usuário, conquista e data em que foi desbloqueada
+class ConquistaUsuario(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_("Usuário")
+    )
+
+    conquista = models.ForeignKey(
+        Conquista,
+        on_delete=models.CASCADE,
+        verbose_name=_("Conquista do Usuário")
+    )
+
+    evento = models.ForeignKey(
+        Evento,
+        on_delete=models.CASCADE,
+        verbose_name=_("Evento da conquista")
+    )
+
+    data_desbloqueio = models.DateField(
+        _("Data de desbloqueio da conquista"),
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "conquista"],
+                name="unique_usuario_conquista"
+            )
+        ]
