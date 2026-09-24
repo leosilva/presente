@@ -58,6 +58,7 @@ INSTALLED_APPS = DJANGO_APPS + THIRD_PARTY_APPS + LOCAL_APPS
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
+    "whitenoise.middleware.WhiteNoiseMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
@@ -107,6 +108,11 @@ else:
             "PORT": os.getenv("DB_PORT"),
             "USER": os.getenv("DB_USER"),
             "PASSWORD": os.getenv("DB_PASSWORD"),
+            # Provedores gerenciados (Render, Supabase, etc.) normalmente exigem SSL.
+            # DB_SSLMODE=disable pode ser usado para o Postgres local do compose.yaml.
+            "OPTIONS": {
+                "sslmode": os.getenv("DB_SSLMODE", "prefer"),
+            },
         }
     }
 
@@ -182,6 +188,18 @@ if BUILD_ENV == "local":
 else:
     STATIC_ROOT = os.getenv("STATIC_ROOT")
     MEDIA_ROOT = os.getenv("MEDIA_ROOT")
+
+    # WhiteNoise serve os estáticos direto do container (sem Nginx na frente,
+    # como é o caso no Render). Storage com manifesto exige collectstatic
+    # rodado antes (já feito no entrypoint.sh), por isso só fora do "local".
+    STORAGES = {
+        "default": {
+            "BACKEND": "django.core.files.storage.FileSystemStorage",
+        },
+        "staticfiles": {
+            "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+        },
+    }
 
 
 # Default primary key field type
