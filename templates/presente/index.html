@@ -7,8 +7,11 @@
   <div class="card mb-4">
     <div class="card-body py-2">
       <div class="gm-statbar">
-        <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-stat gm-stat--points" title="Seus pontos">
+        <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-stat gm-stat--points" title="Pontos ganhos (ranking e nível)">
           <i class="bi bi-star-fill"></i> {{ my_points }}
+        </a>
+        <a href="{% url 'presente:loja' %}" class="gm-stat text-success" title="Saldo para gastar na loja">
+          <i class="bi bi-wallet2"></i> {{ meu_saldo }}
         </a>
         <a href="{% url 'presente:conquistas' %}" class="gm-stat gm-stat--level" title="Seu nível">
           <i class="bi bi-bar-chart-steps"></i> {{ nivel_atual.nome|default:"Iniciante" }}

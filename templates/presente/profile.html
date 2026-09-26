@@ -49,8 +49,11 @@
                 <i class="bi bi-bar-chart-steps"></i> {{ nivel_atual.nome|default:"Iniciante" }}
               </div>
               <div class="gm-statbar mt-2">
-                <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-stat gm-stat--points" title="Pontos">
+                <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-stat gm-stat--points" title="Pontos ganhos (ranking e nível)">
                   <i class="bi bi-star-fill"></i> {{ my_points }}
+                </a>
+                <a href="{% url 'presente:loja' %}" class="gm-stat text-success" title="Saldo para gastar na loja">
+                  <i class="bi bi-wallet2"></i> {{ meu_saldo }}
                 </a>
                 <a href="{% url 'presente:conquistas' %}" class="gm-stat gm-stat--rank" title="Conquistas">
                   <i class="bi bi-award-fill"></i> {{ total_conquistas }}

@@ -1,5 +1,5 @@
 from .models import PerfilGamificado
-from .services import NivelService
+from .services import NivelService, PointService
 
 
 def gamificacao_context(request):
@@ -10,6 +10,7 @@ def gamificacao_context(request):
     return {
         "perfil": PerfilGamificado.objects.filter(user=request.user).first(),
         "my_points": progresso["pontos"],
+        "meu_saldo": PointService.calculate_user_point(request.user),
         "nivel_atual": progresso["nivel_atual"],
         "proximo_nivel": progresso["proximo_nivel"],
         "percentual": progresso["percentual"],

@@ -69,6 +69,11 @@ from .utils import (
 
 User = get_user_model()
 
+# Ranking e nível contam os pontos ganhos; gastos na loja não fazem perder posição.
+PONTOS_GANHOS = Q(
+    point_history__categoria__in=[PointHistory.Categoria.GANHO, PointHistory.Categoria.ESTORNO]
+)
+
 
 class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView): # view da página inicial
     from .models import UsuarioGamificacao
@@ -91,11 +96,9 @@ class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView): # view da pá
             .select_related("activity")
             .order_by("-checked_in_at")[:5]
         )
-        context["my_points"] = PointService.calculate_user_point(self.request.user)
-
         evento_atual = Evento.objects.order_by("-data_inicio").first()
         if evento_atual:
-            pontos_filter = Q(point_history__evento=evento_atual)
+            pontos_filter = Q(point_history__evento=evento_atual) & PONTOS_GANHOS
             meus_pontos_evento = (
                 User.objects.filter(pk=self.request.user.pk)
                 .annotate(total=Coalesce(Sum("point_history__pontos", filter=pontos_filter), 0))
@@ -407,13 +410,12 @@ def minhas_pontuacoes(request):
             {
                 "evento": evento,
                 "movimentos": movimentos,
-                "saldo": sum(m.pontos for m in movimentos),
+                "ganhos": sum(m.pontos for m in movimentos if m.categoria != PointHistory.Categoria.TROCA),
             }
             for evento, movimentos in grupos.items()
         ],
-        "total_pontos": PointService.calculate_user_point(request.user),
-        "total_ganho": sum(m.pontos for m in historico if m.pontos > 0),
-        "total_gasto": -sum(m.pontos for m in historico if m.pontos < 0),
+        "saldo": PointService.calculate_user_point(request.user),
+        "gasto_loja": -sum(m.pontos for m in historico if m.categoria == PointHistory.Categoria.TROCA),
     }
     return render(request, "presente/minhas_pontuacoes.html", context)
 class RankingListView(ListView):
@@ -429,7 +431,7 @@ class RankingListView(ListView):
 
     def get_queryset(self):
         evento = self.get_evento()
-        pontos_filter = Q(point_history__evento=evento) if evento else Q()
+        pontos_filter = PONTOS_GANHOS & (Q(point_history__evento=evento) if evento else Q())
         return (
             User.objects
             .annotate(

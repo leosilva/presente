@@ -40,6 +40,7 @@ class PointService:
                 gamificacao=gamificacao,
                 evento=evento,
                 tipo=PointHistory.TipoMovimento.DEBITO,
+                categoria=PointHistory.Categoria.ESTORNO,
                 pontos=-gamificacao.pontos,
                 motivo=motivo or f"Estorno automático — {gamificacao.titulo}",
             )
@@ -60,6 +61,7 @@ class PointService:
                 gamificacao=gamificacao,
                 evento=evento,
                 tipo=PointHistory.TipoMovimento.CREDITO,
+                categoria=PointHistory.Categoria.GANHO,
                 pontos=gamificacao.pontos,
                 motivo=motivo or f"Concessão automática — {gamificacao.titulo}",
             )
@@ -79,11 +81,21 @@ class PointService:
 
     @classmethod
     def calculate_user_point(cls, user):
-        # PointHistory é a fonte única de saldo — soma todos os créditos
-        # (positivos) e débitos (negativos) registrados para o usuário.
+        """Saldo disponível para a loja: ganhos - estornos - trocas."""
         total = PointHistory.objects.filter(user=user).aggregate(
             total=Sum("pontos")
         ).get("total") or 0
+        return total
+
+    @classmethod
+    def calculate_user_xp(cls, user):
+        """Pontos ganhos (ranking e nível): trocas na loja não descontam."""
+        total = (
+            PointHistory.objects.filter(user=user)
+            .exclude(categoria=PointHistory.Categoria.TROCA)
+            .aggregate(total=Sum("pontos"))
+            .get("total") or 0
+        )
         return total
 
     # ──────────────────────────────────────────────────────────────
@@ -127,6 +139,7 @@ class PointService:
                         user=user,
                         evento=evento,
                         tipo=PointHistory.TipoMovimento.CREDITO,
+                        categoria=PointHistory.Categoria.GANHO,
                         pontos=conquista.pontos,
                         motivo=f"Conquista desbloqueada: {conquista.nome}",
                     )
@@ -294,7 +307,7 @@ class PointService:
 
     @classmethod
     def _update_user_level(cls, user):
-        total_pontos = cls.calculate_user_point(user)
+        total_pontos = cls.calculate_user_xp(user)
         nivel = (
             Nivel.objects.filter(pontos_minimos__lte=total_pontos)
             .order_by("-pontos_minimos")
@@ -470,6 +483,7 @@ class TrocaService:
             gamificacao=None,
             evento=evento,
             tipo=PointHistory.TipoMovimento.DEBITO,
+            categoria=PointHistory.Categoria.TROCA,
             pontos=-troca.pontos_gastos,
             motivo=f"Troca #{troca.pk}: {nomes}",
         )
@@ -598,7 +612,7 @@ class NivelService:
     @classmethod
     def progresso(cls, user, pontos=None):
         if pontos is None:
-            pontos = PointService.calculate_user_point(user)
+            pontos = PointService.calculate_user_xp(user)
 
         niveis = list(Nivel.objects.order_by("pontos_minimos"))
         nivel_atual = None

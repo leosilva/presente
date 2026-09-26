@@ -653,7 +653,20 @@ class PointHistory(models.Model):
         blank=True,
         help_text=_("Evento ao qual este crédito/débito está vinculado, quando aplicável."),
     )
+    class Categoria(models.TextChoices):
+        GANHO = "GANHO", _("Ganho")
+        ESTORNO = "ESTORNO", _("Estorno")
+        TROCA = "TROCA", _("Troca na loja")
+
     tipo = models.CharField(_("Tipo"), max_length=3, choices=TipoMovimento.choices)
+    categoria = models.CharField(
+        _("Categoria"),
+        max_length=10,
+        choices=Categoria.choices,
+        default=Categoria.GANHO,
+        db_index=True,
+        help_text=_("Trocas na loja reduzem o saldo, mas não os pontos ganhos (ranking e nível)."),
+    )
     pontos = models.IntegerField(
         _("Pontos"),
         help_text=_("Positivo para crédito, negativo para débito."),
