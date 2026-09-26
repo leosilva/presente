@@ -14,14 +14,14 @@
 
   <!-- Saldo do usuário -->
   <div class="row mb-4">
-    <div class="col-md-4">
+    <div class="col-lg-4 col-6">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted text-uppercase mb-1">Seus Pontos</h6>
             <h2 class="mb-0">{{ total_pontos }}</h2>
           </div>
-          <div class="text-warning" style="font-size: 2.5rem;">
+          <div class="text-warning" style="font-size: 3rem;">
             <i class="bi bi-star-fill"></i>
           </div>
         </div>
@@ -29,20 +29,20 @@
     </div>
 
     {% if itens_carrinho %}
-    <div class="col-md-4">
+    <div class="col-lg-4 col-6">
       <div class="card border-success">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
             <h6 class="text-muted text-uppercase mb-1">Total da Troca</h6>
             <h2 class="mb-0 text-danger">-{{ total_carrinho }}</h2>
           </div>
-          <div class="text-success" style="font-size: 2.5rem;">
+          <div class="text-success" style="font-size: 3rem;">
             <i class="bi bi-cart-fill"></i>
           </div>
         </div>
       </div>
     </div>
-    <div class="col-md-4">
+    <div class="col-lg-4 col-6">
       <div class="card">
         <div class="card-body d-flex justify-content-between align-items-center">
           <div>
@@ -51,7 +51,7 @@
               {{ pontos_apos_troca }}
             </h2>
           </div>
-          <div class="text-secondary" style="font-size: 2.5rem;">
+          <div class="text-secondary" style="font-size: 3rem;">
             <i class="bi bi-wallet2"></i>
           </div>
         </div>
@@ -76,7 +76,7 @@
           {% if brindes %}
           <div class="row g-3">
             {% for brinde in brindes %}
-            <div class="col-md-6">
+            <div class="col-6 col-lg-6">
               <div class="card h-100 {% if not brinde.disponivel %}opacity-50{% endif %}">
                 <div class="card-body">
                   <div class="d-flex justify-content-between align-items-start mb-2">
@@ -90,6 +90,21 @@
                   <p class="card-text text-muted small mb-2">{{ brinde.descricao }}</p>
                   {% endif %}
 
+                  <div class="d-flex flex-wrap gap-1">
+                    {% if brinde.estoque_baixo %}
+                    <span class="badge text-bg-danger-subtle text-danger-emphasis">
+                      <i class="bi bi-fire"></i>
+                      {% if brinde.quantidade_disponivel == 1 %}Última unidade!{% else %}Últimas {{ brinde.quantidade_disponivel }} unidades{% endif %}
+                    </span>
+                    {% endif %}
+                    {% if brinde.dias_restantes is not None and brinde.dias_restantes <= 7 %}
+                    <span class="badge text-bg-warning-subtle text-warning-emphasis">
+                      <i class="bi bi-hourglass-split"></i>
+                      {% if brinde.dias_restantes == 0 %}Termina hoje{% elif brinde.dias_restantes == 1 %}Termina amanhã{% else %}Termina em {{ brinde.dias_restantes }} dias{% endif %}
+                    </span>
+                    {% endif %}
+                  </div>
+
                   <div class="d-flex justify-content-between align-items-center mt-3">
                     <small class="text-muted">
                       <i class="bi bi-box-seam"></i> {{ brinde.quantidade_disponivel }} disponíveis
@@ -102,16 +117,34 @@
                     <form method="post" action="{% url 'presente:carrinho_adicionar' %}">
                       {% csrf_token %}
                       <input type="hidden" name="brinde_pk" value="{{ brinde.pk }}">
-                      <button type="submit" class="btn btn-sm btn-primary">
+                      <button type="submit" class="btn btn-sm btn-primary gm-btn-3d">
                         <i class="bi bi-cart-plus"></i> Adicionar
                       </button>
                     </form>
                     {% elif not brinde.disponivel %}
                     <span class="badge bg-secondary">Esgotado</span>
                     {% else %}
-                    <span class="badge bg-danger">Pontos insuficientes</span>
+                    <span class="badge bg-secondary"><i class="bi bi-lock-fill"></i> Bloqueado</span>
                     {% endif %}
                   </div>
+
+                  {% if brinde.disponivel and total_pontos < brinde.pontos_necessarios %}
+                  {% widthratio total_pontos brinde.pontos_necessarios 100 as progresso_brinde %}
+                  <div class="progress mt-3" style="height: 6px;">
+                    <div
+                      class="progress-bar bg-warning"
+                      role="progressbar"
+                      style="width: {{ progresso_brinde }}%;"
+                      aria-valuenow="{{ progresso_brinde }}"
+                      aria-valuemin="0"
+                      aria-valuemax="100"
+                    ></div>
+                  </div>
+                  <div class="gm-progress-label">
+                    <span>Faltam <strong>{{ brinde.faltam }} pts</strong></span>
+                    <span>{{ progresso_brinde }}%</span>
+                  </div>
+                  {% endif %}
                 </div>
               </div>
             </div>
@@ -174,7 +207,7 @@
             {% if pontos_apos_troca >= 0 %}
             <form method="post" action="{% url 'presente:troca_confirmar' %}">
               {% csrf_token %}
-              <button type="submit" class="btn btn-success w-100">
+              <button type="submit" class="btn btn-success gm-btn-3d w-100">
                 <i class="bi bi-check-circle"></i> Confirmar Troca
               </button>
             </form>
@@ -193,13 +226,11 @@
           {% endif %}
         </div>
 
-        {% if itens_carrinho %}
         <div class="card-footer">
           <a href="{% url 'presente:troca_historico' %}" class="btn btn-outline-secondary btn-sm w-100">
             <i class="bi bi-clock-history"></i> Ver histórico de trocas
           </a>
         </div>
-        {% endif %}
       </div>
     </div>
 

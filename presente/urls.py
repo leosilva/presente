@@ -15,8 +15,14 @@ urlpatterns = [
         "activity/<int:pk>/", views.ActivityDetailView.as_view(), name="activity_view"
     ),
     path("minhas-pontuacoes/", views.minhas_pontuacoes, name="minhas_pontuacoes"),
+    path("conquistas/", views.ConquistasView.as_view(), name="conquistas"),
+    path("como-funciona/", views.ComoFuncionaView.as_view(), name="como_funciona"),
+    path("trilhas/", views.TrilhasView.as_view(), name="trilhas"),
+    path("trilhas/<int:pk>/inscrever/", views.TrilhaInscreverView.as_view(), name="trilha_inscrever"),
+    path("trilhas/<int:pk>/sair/", views.TrilhaSairView.as_view(), name="trilha_sair"),
  
     path("ranking/", views.RankingListView.as_view(), name="ranking"),
+    path("eventos/<int:evento_pk>/ranking/", views.RankingListView.as_view(), name="ranking"),
 
     path(
         "activity/<int:pk>/update/",

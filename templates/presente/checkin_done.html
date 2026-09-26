@@ -19,13 +19,57 @@
         <div class="card-body text-center p-5">
           {% if success %}
             {% if created %}
-              <div class="mb-4">
-                <i class="bi bi-check-circle-fill text-success" style="font-size: 5rem;"></i>
+              <div class="mb-3">
+                <i class="bi bi-check-circle-fill text-success" style="font-size: 4rem;"></i>
               </div>
-              <h2 class="text-success mb-3">Presença Registrada!</h2>
-              <p class="lead">Sua presença na atividade foi registrada com sucesso.</p>
-              {% if attendance.activity.gamificacao %}
-                <p class="lead">Você recebeu {{ attendance.activity.gamificacao.pontos }} pontos pela presença!</p>
+              <h2 class="text-success mb-2">Presença Registrada!</h2>
+
+              {% if pontos_ganhos %}
+                <div class="checkin-points my-3">+{{ pontos_ganhos }} pts</div>
+                <ul class="checkin-gains mb-3">
+                  {% for ganho in ganhos %}
+                  <li>
+                    <span>{% if ganho.motivo %}{{ ganho.motivo }}{% else %}{{ ganho.gamificacao.titulo }}{% endif %}</span>
+                    <strong class="{% if ganho.pontos >= 0 %}text-success{% else %}text-danger{% endif %}">{% if ganho.pontos >= 0 %}+{% endif %}{{ ganho.pontos }}</strong>
+                  </li>
+                  {% endfor %}
+                </ul>
+              {% else %}
+                <p class="lead">Sua presença na atividade foi registrada com sucesso.</p>
+              {% endif %}
+
+              {% if subiu_nivel %}
+                <div class="checkin-levelup mb-3">
+                  <i class="bi bi-arrow-up-circle-fill"></i>
+                  Você subiu para o nível {{ progresso_depois.nivel_atual.nome }}!
+                </div>
+              {% endif %}
+
+              {% for novo in conquistas_novas %}
+                <div class="checkin-unlock mb-2">
+                  <i class="bi bi-award-fill"></i>
+                  <div>
+                    <small class="text-muted text-uppercase fw-bold">Conquista desbloqueada</small>
+                    <div class="fw-bold">{{ novo.conquista.nome }}</div>
+                  </div>
+                </div>
+              {% endfor %}
+
+              {% if progresso_depois %}
+                <div class="text-start mt-3 gm-progress-animated">
+                  <div class="d-flex justify-content-between small fw-bold">
+                    <span>{{ progresso_depois.nivel_atual.nome|default:"Iniciante" }}</span>
+                    {% if progresso_depois.proximo_nivel %}<span>{{ progresso_depois.proximo_nivel.nome }}</span>{% endif %}
+                  </div>
+                  <div class="progress mt-1" style="height: 10px;" role="progressbar" aria-label="Progresso de nível" aria-valuenow="{{ progresso_depois.percentual }}" aria-valuemin="0" aria-valuemax="100">
+                    <div class="progress-bar bg-success" style="width: {% if subiu_nivel %}0{% else %}{{ progresso_antes.percentual }}{% endif %}%;" data-target="{{ progresso_depois.percentual }}"></div>
+                  </div>
+                  {% if progresso_depois.proximo_nivel %}
+                  <div class="gm-progress-label">
+                    <span>Faltam <strong>{{ progresso_depois.pontos_faltando }} pts</strong> para {{ progresso_depois.proximo_nivel.nome }}</span>
+                  </div>
+                  {% endif %}
+                </div>
               {% endif %}
             {% else %}
               <div class="mb-4">
@@ -57,14 +101,48 @@
             {% endif %}
           {% endif %}
 
-          <div class="mt-4">
-            <a href="{% url 'presente:index' %}" class="btn btn-primary">
+          <div class="mt-4 d-flex flex-wrap gap-2 justify-content-center">
+            <a href="{% url 'presente:index' %}" class="btn btn-primary gm-btn-3d">
               <i class="bi bi-house"></i> Ir para o início
             </a>
+            {% if success %}
+            <a href="{% url 'presente:conquistas' %}" class="btn btn-outline-primary gm-btn-3d">
+              <i class="bi bi-award"></i> Conquistas
+            </a>
+            {% endif %}
           </div>
         </div>
       </div>
     </div>
   </div>
 </div>
+
+{% if created and pontos_ganhos %}
+<script>
+  (function () {
+    var bar = document.querySelector(".gm-progress-animated .progress-bar[data-target]");
+    if (bar) {
+      requestAnimationFrame(function () {
+        requestAnimationFrame(function () { bar.style.width = bar.dataset.target + "%"; });
+      });
+    }
+
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    var colors = ["#58cc02", "#1cb0f6", "#ffc800", "#ff4b4b", "#ce82ff"];
+    var layer = document.createElement("div");
+    layer.className = "gm-confetti";
+    layer.setAttribute("aria-hidden", "true");
+    for (var i = 0; i < {% if subiu_nivel or conquistas_novas %}90{% else %}45{% endif %}; i++) {
+      var piece = document.createElement("span");
+      piece.style.left = Math.random() * 100 + "vw";
+      piece.style.background = colors[i % colors.length];
+      piece.style.animationDuration = 1.8 + Math.random() * 1.6 + "s";
+      piece.style.animationDelay = Math.random() * 0.5 + "s";
+      layer.appendChild(piece);
+    }
+    document.body.appendChild(layer);
+    setTimeout(function () { layer.remove(); }, 4500);
+  })();
+</script>
+{% endif %}
 {% endblock %}

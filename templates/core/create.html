@@ -25,7 +25,11 @@
         <form method="post" enctype="multipart/form-data" id="activity-form">
           <div class="card-body">
             {% csrf_token %}
-            {{form|crispy}}
+            {% if form.helper %}
+              {% crispy form %}
+            {% else %}
+              {{ form|crispy }}
+            {% endif %}
           </div>
             <div class="card-footer">
               <a href="{% url allowed_actions.list %}" class="btn btn-secondary">

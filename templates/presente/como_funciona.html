@@ -1,0 +1,106 @@
+{% extends "presente/private_base.html" %}
+
+{% block crumb %}
+{{ block.super }}
+<li class="breadcrumb-item active" aria-current="page">Como funciona</li>
+{% endblock %}
+
+{% block app_content %}
+<div class="container-fluid">
+
+  <p class="lead mb-4">
+    Cada presença registrada pelo QR Code gera <strong>pontos</strong>. Os pontos fazem o aluno subir de
+    <strong>nível</strong>, aparecer no <strong>ranking</strong> e trocar por <strong>brindes</strong>.
+    Trilhas, conquistas e bônus de diversidade dão pontos extras.
+  </p>
+
+  <div class="gm-how-grid mb-5">
+    <div class="gm-how-card">
+      <span class="gm-how-icon" style="background:#ffc800"><i class="bi bi-star-fill"></i></span>
+      <h5>Pontos por presença</h5>
+      <p>Cada atividade define quantos pontos vale. O aluno ganha ao registrar presença, uma vez por atividade.
+        Se a presença for removida, os pontos são estornados.</p>
+    </div>
+
+    <div class="gm-how-card">
+      <span class="gm-how-icon" style="background:#1cb0f6"><i class="bi bi-bar-chart-steps"></i></span>
+      <h5>Níveis</h5>
+      {% if niveis %}
+      <ul>
+        {% for nivel in niveis %}
+        <li><strong>{{ nivel.nome }}</strong> a partir de {{ nivel.pontos_minimos }} pts</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mb-0">Nenhum nível cadastrado ainda.</p>
+      {% endif %}
+    </div>
+
+    <div class="gm-how-card">
+      <span class="gm-how-icon" style="background:#58cc02"><i class="bi bi-signpost-split-fill"></i></span>
+      <h5>Trilhas</h5>
+      <p>Uma trilha agrupa atividades sobre um tema. Quem completa o número mínimo de atividades ganha o
+        <strong>bônus da trilha</strong>.</p>
+      <ul>
+        <li><strong>Trilha de um evento:</strong> o aluno escolhe participar na página Trilhas.</li>
+        <li><strong>Trilha sem evento:</strong> vale automaticamente para todos.</li>
+      </ul>
+    </div>
+
+    <div class="gm-how-card">
+      <span class="gm-how-icon" style="background:#ce82ff"><i class="bi bi-award-fill"></i></span>
+      <h5>Conquistas</h5>
+      {% if conquistas_ativas %}
+      <ul>
+        {% for c in conquistas_ativas %}
+        <li><strong>{{ c.nome }}</strong>{% if c.pontos %} (+{{ c.pontos }} pts){% endif %}: {{ c.get_tipo_regra_display|lower }}{% if c.tipo_regra != "PRIMEIRA_PRESENCA" %} ≥ {{ c.valor_necessario }}{% endif %}</li>
+        {% endfor %}
+      </ul>
+      {% else %}
+      <p class="mb-0">Metas automáticas, como "primeira presença" ou "5 presenças". Nenhuma ativa no momento.</p>
+      {% endif %}
+    </div>
+
+    <div class="gm-how-card">
+      <span class="gm-how-icon" style="background:#ff9600"><i class="bi bi-diagram-3-fill"></i></span>
+      <h5>Bônus de diversidade</h5>
+      <p>Participar de atividades de <strong>áreas diferentes no mesmo dia</strong> rende pontos extras.</p>
+      {% if marcos %}
+      <ul>
+        {% for m in marcos %}
+        <li>{{ m.areas_necessarias }} áreas no dia → +{{ m.gamificacao_bonus.pontos }} pts</li>
+        {% endfor %}
+      </ul>
+      {% endif %}
+    </div>
+
+    <div class="gm-how-card">
+      <span class="gm-how-icon" style="background:#ff4b4b"><i class="bi bi-trophy-fill"></i></span>
+      <h5>Ranking e loja</h5>
+      <p class="mb-0">O ranking mostra o saldo de pontos de cada evento. Na loja, os pontos viram brindes;
+        a troca desconta os pontos do saldo e, portanto, também do ranking daquele evento.</p>
+    </div>
+  </div>
+
+  {% if perms.presente.add_activity or user.is_staff %}
+  <div class="card">
+    <div class="card-header">
+      <div class="card-title"><i class="bi bi-person-workspace"></i> Para quem organiza: criando uma atividade gamificada</div>
+    </div>
+    <div class="card-body">
+      <ol class="gm-steps">
+        <li><strong>Preencha as informações para o participante</strong>: título, local, horário e descrição.
+          Elas aparecem para o aluno quando ele toca na atividade dentro da trilha.</li>
+        <li><strong>Defina os pontos pela presença.</strong> Uma boa referência: 10 pts para uma palestra,
+          20 a 30 pts para uma oficina mais longa. Use 0 se a atividade não deve dar pontos.</li>
+        <li><strong>Escolha uma trilha (opcional).</strong> Só aparecem trilhas sem evento ou do evento selecionado.
+          As trilhas são criadas pela administração, no painel admin.</li>
+        <li><strong>Escolha uma área (opcional)</strong> para a atividade contar no bônus de diversidade.</li>
+        <li>Confira a caixa <strong>"O participante vai ver"</strong>: ela resume exatamente o que o aluno ganha.</li>
+      </ol>
+    </div>
+  </div>
+  {% endif %}
+
+</div>
+{% endblock %}

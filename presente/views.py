@@ -1,7 +1,7 @@
 from multiprocessing import context
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Count, Sum, Q
 from django.views.generic.base import TemplateView,View
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
@@ -42,9 +42,13 @@ from .models import (
     AttendanceRemovalLog,
     PointHistory,
     Brinde,
-    Troca
+    Troca,
+    Conquista,
+    ConquistaUsuario,
+    TrilhaGamificacao,
+    InscricaoTrilha,
     )
-from .services import PointService,TrocaService
+from .services import PointService, TrocaService, NivelService, ConquistaService, TrilhaService
 from .tables import (
     ActivityTable,
     AttendanceTable,
@@ -88,6 +92,35 @@ class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView): # view da pá
             .order_by("-checked_in_at")[:5]
         )
         context["my_points"] = PointService.calculate_user_point(self.request.user)
+
+        evento_atual = Evento.objects.order_by("-data_inicio").first()
+        if evento_atual:
+            pontos_filter = Q(point_history__evento=evento_atual)
+            meus_pontos_evento = (
+                User.objects.filter(pk=self.request.user.pk)
+                .annotate(total=Coalesce(Sum("point_history__pontos", filter=pontos_filter), 0))
+                .values_list("total", flat=True)
+                .first()
+            ) or 0
+            context["minha_posicao_dashboard"] = (
+                User.objects.annotate(
+                    total=Coalesce(Sum("point_history__pontos", filter=pontos_filter), 0)
+                )
+                .filter(
+                    Q(total__gt=meus_pontos_evento)
+                    | Q(total=meus_pontos_evento, username__lt=self.request.user.username)
+                )
+                .count()
+                + 1
+            )
+            context["evento_atual"] = evento_atual
+
+        if not context["my_attendances_count"]:
+            context["primeira_missao"] = (
+                Conquista.objects.filter(
+                    status=True, tipo_regra=Conquista.TipoRegra.PRIMEIRA_PRESENCA
+                ).first()
+            )
 
         return context
 
@@ -295,9 +328,20 @@ class CheckInView(LoginRequiredMixin, TemplateView):
             elif not verify_checkin_token(token, activity.qr_timeout):
                 context["error"] = _("QR Code expirado. Solicite um novo código.")
             else:
+                user = self.request.user
+                ultimo_ponto = (
+                    PointHistory.objects.filter(user=user)
+                    .order_by("-pk").values_list("pk", flat=True).first() or 0
+                )
+                ultima_conquista = (
+                    ConquistaUsuario.objects.filter(user=user)
+                    .order_by("-pk").values_list("pk", flat=True).first() or 0
+                )
+                progresso_antes = NivelService.progresso(user)
+
                 attendance, created = Attendance.objects.get_or_create(
                     activity=activity,
-                    user=self.request.user,
+                    user=user,
                     defaults={"ip_address": client_ip},
                 )
                 context.update(
@@ -307,6 +351,26 @@ class CheckInView(LoginRequiredMixin, TemplateView):
                         "created": created,
                     }
                 )
+
+                if created:
+                    ganhos = list(
+                        PointHistory.objects.filter(user=user, pk__gt=ultimo_ponto)
+                        .select_related("gamificacao").order_by("pk")
+                    )
+                    progresso_depois = NivelService.progresso(user)
+                    context.update(
+                        {
+                            "ganhos": ganhos,
+                            "pontos_ganhos": sum(g.pontos for g in ganhos),
+                            "conquistas_novas": ConquistaUsuario.objects.filter(
+                                user=user, pk__gt=ultima_conquista
+                            ).select_related("conquista"),
+                            "progresso_antes": progresso_antes,
+                            "progresso_depois": progresso_depois,
+                            "subiu_nivel": progresso_depois["numero_nivel"]
+                            > progresso_antes["numero_nivel"],
+                        }
+                    )
 
         return context
 
@@ -331,13 +395,25 @@ class MyAttendancesView(CoreFilterView):
 def minhas_pontuacoes(request):
     historico = PointHistory.objects.filter(
         user=request.user
-    ).select_related("gamificacao").order_by("-criado_em")
+    ).select_related("gamificacao", "evento").order_by("-criado_em")
 
-    total_pontos = PointService.calculate_user_point(request.user)
+    grupos = {}
+    for movimento in historico:
+        grupos.setdefault(movimento.evento, []).append(movimento)
 
     context = {
         "historico": historico,
-        "total_pontos": total_pontos,
+        "grupos": [
+            {
+                "evento": evento,
+                "movimentos": movimentos,
+                "saldo": sum(m.pontos for m in movimentos),
+            }
+            for evento, movimentos in grupos.items()
+        ],
+        "total_pontos": PointService.calculate_user_point(request.user),
+        "total_ganho": sum(m.pontos for m in historico if m.pontos > 0),
+        "total_gasto": -sum(m.pontos for m in historico if m.pontos < 0),
     }
     return render(request, "presente/minhas_pontuacoes.html", context)
 class RankingListView(ListView):
@@ -345,17 +421,58 @@ class RankingListView(ListView):
     template_name = "presente/ranking.html"
     context_object_name = "ranking"
 
+    def get_evento(self):
+        evento_pk = self.kwargs.get("evento_pk")
+        if evento_pk:
+            return get_object_or_404(Evento, pk=evento_pk)
+        return Evento.objects.order_by("-data_inicio").first()
+
     def get_queryset(self):
+        evento = self.get_evento()
+        pontos_filter = Q(point_history__evento=evento) if evento else Q()
         return (
             User.objects
             .annotate(
                 total_pontos=Coalesce(
-                    Sum("point_history__pontos"),
+                    Sum("point_history__pontos", filter=pontos_filter),
                     0
                 )
             )
             .order_by("-total_pontos", "username")
         )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        ranking = list(context["ranking"])
+        context["ranking"] = ranking
+        context["evento"] = self.get_evento()
+        context["eventos"] = Evento.objects.order_by("-data_inicio")
+
+        context["podio"] = ranking[:3]
+
+        if self.request.user.is_authenticated:
+            for posicao, aluno in enumerate(ranking, start=1):
+                if aluno.pk == self.request.user.pk:
+                    context["minha_posicao"] = posicao
+                    context["meus_pontos_ranking"] = aluno.total_pontos
+                    if posicao > 1:
+                        acima = ranking[posicao - 2]
+                        context["alvo_acima"] = acima
+                        context["pontos_para_subir"] = (
+                            acima.total_pontos - aluno.total_pontos + 1
+                        )
+                    # "Ao seu redor": 2 posições acima e 2 abaixo do usuário,
+                    # só faz sentido mostrar se ele já não está no topo visível.
+                    if posicao > 3:
+                        inicio = max(posicao - 3, 0)
+                        fim = posicao + 2
+                        context["vizinhanca"] = [
+                            {"posicao": i + 1, "row": row}
+                            for i, row in enumerate(ranking[inicio:fim], start=inicio)
+                        ]
+                    break
+
+        return context
 
 class ActivityAttendanceListView(ActivityOwnerMixin, CoreFilterView):
     model = Attendance
@@ -861,8 +978,17 @@ class LojaView(LoginRequiredMixin, TemplateView):
  
         brindes = []
         if evento:
-            brindes = TrocaService.get_brindes_disponiveis(evento)
+            brindes = list(TrocaService.get_brindes_disponiveis(evento))
  
+        total_pontos = PointService.calculate_user_point(self.request.user)
+        hoje = timezone.now().date()
+        for brinde in brindes:
+            brinde.faltam = max(0, brinde.pontos_necessarios - total_pontos)
+            brinde.estoque_baixo = brinde.quantidade_disponivel <= 5
+            brinde.dias_restantes = (
+                (brinde.data_validade - hoje).days if brinde.data_validade else None
+            )
+
         carrinho = get_carrinho(self.request)
         itens_carrinho = carrinho_para_itens(carrinho)
         total_carrinho = sum(
@@ -874,8 +1000,8 @@ class LojaView(LoginRequiredMixin, TemplateView):
         context["brindes"] = brindes
         context["itens_carrinho"] = itens_carrinho
         context["total_carrinho"] = total_carrinho
-        context["total_pontos"] = PointService.calculate_user_point(self.request.user)
-        context["pontos_apos_troca"] = context["total_pontos"] - total_carrinho
+        context["total_pontos"] = total_pontos
+        context["pontos_apos_troca"] = total_pontos - total_carrinho
         return context
  
  
@@ -983,3 +1109,112 @@ class MinhasRecompensasView(LoginRequiredMixin, TemplateView):
         context["total_itens"] = total_itens
         context["total_pontos"] = PointService.calculate_user_point(self.request.user)
         return context
+
+
+class ConquistasView(LoginRequiredMixin, PageTitleMixin, TemplateView):
+    template_name = "presente/conquistas.html"
+    page_title = _("Minhas Conquistas")
+
+    TIPOS_PREMIACAO = {
+        "BDG": {"label": "Badges", "icon": "award-fill"},
+        "TRF": {"label": "Troféus", "icon": "trophy-fill"},
+        "MDL": {"label": "Medalhas", "icon": "patch-check-fill"},
+    }
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        conquistas = ConquistaService.conquistas_com_progresso(user)
+        context["conquistas"] = conquistas
+        context["conquistas_desbloqueadas"] = sum(1 for c in conquistas if c["desbloqueada"])
+
+        premiacoes = list(
+            UsuarioGamificacao.objects.filter(user=user, gamificacao__tipo__isnull=False)
+            .select_related("gamificacao__tipo")
+            .order_by("-data_concedida")
+        )
+        context["premiacoes"] = [
+            {**meta, "tipo": codigo, "itens": itens}
+            for codigo, meta in self.TIPOS_PREMIACAO.items()
+            if (itens := [p for p in premiacoes if p.gamificacao.tipo.tipo == codigo])
+        ]
+        return context
+
+
+class TrilhasView(LoginRequiredMixin, PageTitleMixin, TemplateView):
+    template_name = "presente/trilhas.html"
+    page_title = _("Trilhas")
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        trilhas = TrilhaGamificacao.objects.select_related("gamificacao_bonus", "evento")
+        inscritas = set(
+            InscricaoTrilha.objects.filter(user=user).values_list("trilha_id", flat=True)
+        )
+
+        minhas = [
+            TrilhaService.caminho(user, t)
+            for t in trilhas
+            if t.evento_id is None or t.pk in inscritas
+        ]
+        minhas.sort(key=lambda c: (c["completa"], not c["trilha"].requer_inscricao, -c["percentual"]))
+        context["minhas"] = minhas
+
+        selecionada = self.request.GET.get("trilha", "")
+        pks = [str(c["trilha"].pk) for c in minhas]
+        context["selecionada"] = selecionada if selecionada in pks else (pks[0] if pks else "")
+
+        disponiveis = {}
+        agora = timezone.now()
+        for trilha in (
+            trilhas.filter(evento__isnull=False, evento__data_fim__gte=agora)
+            .exclude(pk__in=inscritas)
+            .annotate(
+                total_atividades=Count("activities", distinct=True),
+                total_inscritos=Count("inscricoes", distinct=True),
+            )
+            .order_by("evento__data_inicio", "name")
+        ):
+            disponiveis.setdefault(trilha.evento, []).append(trilha)
+        context["disponiveis"] = list(disponiveis.items())
+        return context
+
+
+class TrilhaInscreverView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        trilha = get_object_or_404(TrilhaGamificacao, pk=pk)
+        try:
+            TrilhaService.inscrever(request.user, trilha)
+            messages.success(request, _(f"Você começou a trilha '{trilha.name}'. Bora!"))
+        except ValidationError as e:
+            messages.error(request, e.message)
+            return redirect("presente:trilhas")
+        return redirect(f"{reverse('presente:trilhas')}?trilha={trilha.pk}")
+
+
+class TrilhaSairView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        trilha = get_object_or_404(TrilhaGamificacao, pk=pk)
+        try:
+            TrilhaService.sair(request.user, trilha)
+            messages.info(request, _(f"Você saiu da trilha '{trilha.name}'."))
+        except ValidationError as e:
+            messages.error(request, e.message)
+        return redirect("presente:trilhas")
+
+
+class ComoFuncionaView(LoginRequiredMixin, PageTitleMixin, TemplateView):
+    template_name = "presente/como_funciona.html"
+    page_title = _("Como funciona a gamificação")
+
+    def get_context_data(self, **kwargs):
+        from .models import Nivel, MarcosDiversidade
+
+        context = super().get_context_data(**kwargs)
+        context["niveis"] = Nivel.objects.order_by("pontos_minimos")
+        context["conquistas_ativas"] = Conquista.objects.filter(status=True).order_by("valor_necessario")
+        context["marcos"] = MarcosDiversidade.objects.select_related("gamificacao_bonus")
+        return context
+

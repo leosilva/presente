@@ -69,6 +69,23 @@ class Activity(models.Model):
         verbose_name=_("Responsáveis"),
     )
     title = models.CharField(_("Título"), max_length=100)
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+        help_text=_("O que o participante vai ver ou fazer nesta atividade."),
+    )
+    local = models.CharField(
+        _("Local"),
+        max_length=200,
+        blank=True,
+        help_text=_("Onde acontece (ex: 'Bloco B — Laboratório 3')."),
+    )
+    ministrante = models.CharField(
+        _("Ministrante"),
+        max_length=150,
+        blank=True,
+        help_text=_("Quem conduz a atividade (palestrante, professor, equipe)."),
+    )
     tags = TaggableManager(
         verbose_name=_("Tags"),
         help_text=_(
@@ -103,9 +120,12 @@ class Activity(models.Model):
     )
     trilha = models.ForeignKey(
         "TrilhaGamificacao",
-        on_delete=models.CASCADE,
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
         related_name="activities",
         verbose_name=_("Trilha"),
+        help_text=_("Opcional. A presença conta para o bônus desta trilha."),
     )
     gamificacao = models.ForeignKey(
         "Gamificacao",
@@ -141,11 +161,15 @@ class Activity(models.Model):
     objects = ActivityManager()
 
     def clean(self):
-        if self.gamificacao and self.trilha:
+        if self.gamificacao and self.trilha and self.gamificacao.trilha_id:
             if self.gamificacao.trilha != self.trilha:
                 raise ValidationError(
                     _("A gamificação deve pertencer à mesma trilha da atividade.")
                 )
+        if self.trilha_id and self.evento_id and self.trilha.evento_id not in (None, self.evento_id):
+            raise ValidationError(
+                _("A trilha escolhida pertence a outro evento.")
+            )
         if self.evento and self.start_time and self.end_time:
             if self.start_time < self.evento.data_inicio:
                 raise ValidationError(
@@ -395,6 +419,18 @@ class TrilhaGamificacao(models.Model):
         verbose_name=_("Gamificação de bônus"),
         help_text=_("Gamificação concedida ao completar a trilha."),
     )
+    evento = models.ForeignKey(
+        "Evento",
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        related_name="trilhas",
+        verbose_name=_("Evento"),
+        help_text=_(
+            "Trilhas de um evento precisam ser escolhidas pelo aluno. "
+            "Sem evento, a trilha vale automaticamente para todos."
+        ),
+    )
 
     class Meta:
         verbose_name = _("Trilha")
@@ -403,6 +439,36 @@ class TrilhaGamificacao(models.Model):
 
     def __str__(self):
         return self.name
+
+    @property
+    def requer_inscricao(self):
+        return self.evento_id is not None
+
+
+class InscricaoTrilha(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        related_name="inscricoes_trilha",
+        verbose_name=_("Usuário"),
+    )
+    trilha = models.ForeignKey(
+        TrilhaGamificacao,
+        on_delete=models.CASCADE,
+        related_name="inscricoes",
+        verbose_name=_("Trilha"),
+    )
+    criado_em = models.DateTimeField(_("Inscrito em"), auto_now_add=True)
+
+    class Meta:
+        verbose_name = _("Inscrição em trilha")
+        verbose_name_plural = _("Inscrições em trilhas")
+        constraints = [
+            models.UniqueConstraint(fields=["user", "trilha"], name="unique_inscricao_trilha")
+        ]
+
+    def __str__(self):
+        return f"{self.user} → {self.trilha}"
 
 
 class TipoGamificacao(models.Model):
@@ -443,12 +509,17 @@ class Gamificacao(models.Model):
     tipo = models.ForeignKey(
         "TipoGamificacao",
         on_delete=models.PROTECT,
+        null=True,
+        blank=True,
         related_name="gamificacoes",
         verbose_name=_("Tipo"),
+        help_text=_("Vazio para os pontos de presença criados automaticamente pela atividade."),
     )
     trilha = models.ForeignKey(
         "TrilhaGamificacao",
         on_delete=models.CASCADE,
+        null=True,
+        blank=True,
         related_name="gamificacoes",
         verbose_name=_("Trilha"),
     )
@@ -458,8 +529,12 @@ class Gamificacao(models.Model):
         help_text=_("Quantidade de pontos concedidos"),
     )
 
+    @property
+    def automatica(self):
+        return self.tipo_id is None
+
     def clean(self):
-        if self.tipo.trilha != self.trilha:
+        if self.tipo_id and self.tipo.trilha != self.trilha:
             raise ValidationError(
                 _("O tipo de gamificação deve pertencer à mesma trilha.")
             )
@@ -474,7 +549,7 @@ class Gamificacao(models.Model):
         ordering = ["titulo"]
 
     def __str__(self):
-        return f"{self.titulo} — {self.trilha.name}"
+        return f"{self.titulo} — {self.trilha.name}" if self.trilha_id else self.titulo
 
 
 class UsuarioGamificacao(models.Model):
@@ -568,6 +643,15 @@ class PointHistory(models.Model):
         verbose_name=_("Gamificação"),
         null=True,
         blank=True,
+    )
+    evento = models.ForeignKey(
+        "Evento",
+        on_delete=models.SET_NULL,
+        related_name="point_history",
+        verbose_name=_("Evento"),
+        null=True,
+        blank=True,
+        help_text=_("Evento ao qual este crédito/débito está vinculado, quando aplicável."),
     )
     tipo = models.CharField(_("Tipo"), max_length=3, choices=TipoMovimento.choices)
     pontos = models.IntegerField(

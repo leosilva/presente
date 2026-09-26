@@ -1,0 +1,11 @@
+<div class="progress mt-3" style="height: 8px;" role="progressbar" aria-label="Progresso de nível" aria-valuenow="{{ percentual }}" aria-valuemin="0" aria-valuemax="100">
+  <div class="progress-bar" style="width: {{ percentual }}%;"></div>
+</div>
+<div class="gm-progress-label">
+  {% if proximo_nivel %}
+    <span>Faltam <strong>{{ pontos_faltando }} pts</strong> para {{ proximo_nivel.nome }}</span>
+    <span>{{ percentual }}%</span>
+  {% elif nivel_atual %}
+    <span><strong>Nível máximo!</strong></span>
+  {% endif %}
+</div>

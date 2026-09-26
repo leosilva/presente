@@ -5,6 +5,7 @@ from .models import (
     Network,
     TipoGamificacao,
     TrilhaGamificacao,
+    InscricaoTrilha,
     Gamificacao,
     UsuarioGamificacao,
     Evento,
@@ -73,7 +74,16 @@ class AttendanceAdmin(admin.ModelAdmin):
 
 @admin.register(TrilhaGamificacao)
 class TrilhaGamificacaoAdmin(admin.ModelAdmin):
+    list_display = ("name", "evento", "minimo_atividades", "gamificacao_bonus")
+    list_filter = ("evento",)
     search_fields = ("name",)
+
+
+@admin.register(InscricaoTrilha)
+class InscricaoTrilhaAdmin(admin.ModelAdmin):
+    list_display = ("user", "trilha", "criado_em")
+    list_filter = ("trilha__evento", "trilha")
+    search_fields = ("user__username", "trilha__name")
 
 
 @admin.register(TipoGamificacao)

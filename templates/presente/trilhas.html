@@ -1,0 +1,225 @@
+{% extends "presente/private_base.html" %}
+
+{% block crumb %}
+{{ block.super }}
+<li class="breadcrumb-item active" aria-current="page">Trilhas</li>
+{% endblock %}
+
+{% block extra_body %}
+{{ block.super }}
+<script>
+  (function () {
+    function closeAll(except) {
+      document.querySelectorAll(".gm-step.is-open").forEach(function (step) {
+        if (step === except) return;
+        step.classList.remove("is-open");
+        step.querySelector(".gm-bubble").hidden = true;
+        step.querySelector(".gm-node").setAttribute("aria-expanded", "false");
+      });
+    }
+    document.addEventListener("click", function (e) {
+      var node = e.target.closest(".gm-step > .gm-node");
+      if (!node) {
+        if (!e.target.closest(".gm-bubble")) closeAll();
+        return;
+      }
+      var step = node.parentElement;
+      var open = !step.classList.contains("is-open");
+      closeAll(step);
+      step.classList.toggle("is-open", open);
+      step.querySelector(".gm-bubble").hidden = !open;
+      node.setAttribute("aria-expanded", String(open));
+    });
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape") closeAll();
+    });
+
+    var tabs = Array.prototype.slice.call(document.querySelectorAll(".gm-trail-card[data-trilha]"));
+    function selectTrail(tab, focus) {
+      closeAll();
+      tabs.forEach(function (t) { t.setAttribute("aria-selected", String(t === tab)); t.tabIndex = t === tab ? 0 : -1; });
+      document.querySelectorAll("[role=tabpanel][data-trilha]").forEach(function (panel) {
+        panel.hidden = panel.dataset.trilha !== tab.dataset.trilha;
+      });
+      if (focus) tab.focus();
+      tab.scrollIntoView({ block: "nearest", inline: "nearest", behavior: "smooth" });
+      var url = new URL(window.location.href);
+      url.searchParams.set("trilha", tab.dataset.trilha);
+      history.replaceState(null, "", url);
+    }
+    tabs.forEach(function (tab, i) {
+      tab.tabIndex = tab.getAttribute("aria-selected") === "true" ? 0 : -1;
+      if (tab.tabIndex === 0) tab.parentElement.scrollLeft = tab.offsetLeft - tab.parentElement.offsetLeft - 8;
+      tab.addEventListener("click", function () { selectTrail(tab); });
+      tab.addEventListener("keydown", function (e) {
+        var next = e.key === "ArrowRight" ? i + 1 : e.key === "ArrowLeft" ? i - 1 : null;
+        if (next === null) return;
+        e.preventDefault();
+        selectTrail(tabs[(next + tabs.length) % tabs.length], true);
+      });
+    });
+  })();
+</script>
+{% endblock %}
+
+{% block app_content %}
+<div class="container-fluid">
+
+  <!-- Trilhas em andamento -->
+  <h5 class="fw-bold mb-3"><i class="bi bi-signpost-split"></i> Suas trilhas</h5>
+  {% if minhas %}
+  <div class="gm-trail-picker mb-4" role="tablist" aria-label="Escolha a trilha para ver">
+    {% for c in minhas %}
+    {% with pk=c.trilha.pk|stringformat:"s" %}
+    <button type="button" role="tab" class="gm-trail-card {% if c.completa %}gm-trail-card--done{% endif %}"
+            id="tab-trilha-{{ pk }}" data-trilha="{{ pk }}" aria-controls="painel-trilha-{{ pk }}"
+            aria-selected="{% if pk == selecionada %}true{% else %}false{% endif %}">
+      <span class="gm-trail-card-icon">
+        <i class="bi bi-{% if c.completa %}trophy-fill{% else %}signpost-split-fill{% endif %}"></i>
+      </span>
+      <span class="gm-trail-card-body">
+        <span class="gm-trail-card-kicker">{% if c.trilha.evento %}{{ c.trilha.evento.nome }}{% else %}Trilha geral{% endif %}</span>
+        <span class="gm-trail-card-name">{{ c.trilha.name }}</span>
+        <span class="progress" role="presentation" style="height: 6px;">
+          <span class="progress-bar {% if c.completa %}bg-success{% endif %}" style="width: {{ c.percentual }}%;"></span>
+        </span>
+        <span class="gm-trail-card-meta">
+          {% if c.completa %}Concluída!{% else %}{{ c.feitas }} de {{ c.necessario }} atividades{% endif %}
+        </span>
+      </span>
+    </button>
+    {% endwith %}
+    {% endfor %}
+  </div>
+
+  <div class="gm-trail-stage mb-5">
+    {% for c in minhas %}
+    {% with pk=c.trilha.pk|stringformat:"s" %}
+    <section role="tabpanel" id="painel-trilha-{{ pk }}" aria-labelledby="tab-trilha-{{ pk }}" data-trilha="{{ pk }}"
+             {% if pk != selecionada %}hidden{% endif %}>
+      <div class="gm-unit-header {% if c.completa %}gm-unit-header--done{% endif %}">
+        <div>
+          <div class="gm-kicker">
+            {% if c.trilha.evento %}{{ c.trilha.evento.nome }} · {% endif %}{{ c.feitas }} de {{ c.necessario }} para o bônus
+          </div>
+          <h5>{{ c.trilha.name }}</h5>
+        </div>
+        {% if c.trilha.gamificacao_bonus %}
+        <span class="badge bg-light text-dark fs-6">+{{ c.trilha.gamificacao_bonus.pontos }}</span>
+        {% endif %}
+      </div>
+
+      {% if c.trilha.descricao %}
+      <p class="text-muted small mt-2 mb-0">{{ c.trilha.descricao }}</p>
+      {% endif %}
+
+      <div class="gm-path">
+        {% for etapa in c.etapas %}
+        {% with a=etapa.atividade estado=etapa.estado %}
+        <div class="gm-step gm-step--{{ estado }}">
+          <button type="button" class="gm-node gm-node--{{ estado }}"
+                  aria-expanded="false" aria-controls="bubble-{{ c.trilha.pk }}-{{ a.pk }}"
+                  aria-label="{{ a.title }}: ver detalhes">
+            {% if estado == "done" %}<i class="bi bi-check-lg"></i>
+            {% elif estado == "current" %}<i class="bi bi-star-fill"></i>
+            {% elif estado == "missed" %}<i class="bi bi-x-lg"></i>
+            {% else %}<i class="bi bi-lock-fill"></i>{% endif %}
+          </button>
+          <div class="gm-step-label">
+            {{ a.title }}
+            <small>{{ a.start_time|date:"d/m H:i" }}</small>
+          </div>
+
+          <div class="gm-bubble gm-bubble--{{ estado }}" id="bubble-{{ c.trilha.pk }}-{{ a.pk }}" role="dialog" aria-label="{{ a.title }}" hidden>
+            <div class="gm-bubble-status">
+              {% if estado == "done" %}<i class="bi bi-check-circle-fill"></i> Você esteve aqui
+              {% elif estado == "current" %}{% if a.status == "active" %}<i class="bi bi-broadcast"></i> Acontecendo agora{% else %}<i class="bi bi-star-fill"></i> Próxima atividade{% endif %}
+              {% elif estado == "missed" %}<i class="bi bi-x-circle"></i> Atividade encerrada
+              {% else %}<i class="bi bi-lock-fill"></i> Em breve{% endif %}
+            </div>
+            <div class="gm-bubble-title">{{ a.title }}</div>
+            <ul class="gm-bubble-info">
+              <li><i class="bi bi-clock"></i> {{ a.start_time|date:"d/m · H:i" }} – {{ a.end_time|date:"H:i" }}</li>
+              {% if a.local %}<li><i class="bi bi-geo-alt-fill"></i> {{ a.local }}</li>{% endif %}
+              {% if a.ministrante %}<li><i class="bi bi-person-video3"></i> {{ a.ministrante }}</li>{% endif %}
+              {% if a.area %}<li><i class="bi bi-bookmark"></i> {{ a.area }}</li>{% endif %}
+              {% if a.gamificacao %}<li><i class="bi bi-star-fill"></i> +{{ a.gamificacao.pontos }} pts pela presença</li>{% endif %}
+            </ul>
+            {% if a.descricao %}<p class="gm-bubble-desc">{{ a.descricao|linebreaksbr }}</p>{% endif %}
+            {% if estado == "current" or estado == "locked" %}
+            <div class="gm-bubble-hint"><i class="bi bi-qr-code-scan"></i> Vá até o local e escaneie o QR Code para registrar presença.</div>
+            {% endif %}
+          </div>
+        </div>
+        {% endwith %}
+        {% empty %}
+        <p class="text-muted small mb-0">Nenhuma atividade cadastrada nesta trilha ainda.</p>
+        {% endfor %}
+
+        <div class="gm-step">
+          <span class="gm-node gm-node--chest {% if c.completa %}gm-node--done{% endif %}" title="{% if c.completa %}Bônus recebido{% else %}Bônus da trilha{% endif %}">
+            <i class="bi bi-{% if c.completa %}gift-fill{% else %}gift{% endif %}"></i>
+          </span>
+          <div class="gm-step-label">
+            {% if c.completa %}Trilha concluída!{% else %}Bônus da trilha{% endif %}
+          </div>
+        </div>
+      </div>
+
+      {% if c.trilha.requer_inscricao and not c.completa %}
+      <form method="post" action="{% url 'presente:trilha_sair' c.trilha.pk %}" class="text-center mt-2"
+            onsubmit="return confirm('Sair da trilha {{ c.trilha.name|escapejs }}? Suas presenças continuam contando se você voltar.');">
+        {% csrf_token %}
+        <button type="submit" class="btn btn-link btn-sm text-muted">Sair da trilha</button>
+      </form>
+      {% endif %}
+    </section>
+    {% endwith %}
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted mb-5">Você ainda não está em nenhuma trilha. Escolha uma abaixo!</p>
+  {% endif %}
+
+  <!-- Trilhas para escolher -->
+  {% if disponiveis %}
+  <h5 class="fw-bold mb-3"><i class="bi bi-compass"></i> Escolha novas trilhas</h5>
+  {% for evento, trilhas in disponiveis %}
+  <div class="mb-4">
+    <div class="text-muted text-uppercase small fw-bold mb-2">
+      <i class="bi bi-calendar-event"></i> {{ evento.nome }}
+      <span class="fw-normal text-lowercase">· {{ evento.data_inicio|date:"d/m" }} a {{ evento.data_fim|date:"d/m" }}</span>
+    </div>
+    <div class="gm-trail-grid">
+      {% for trilha in trilhas %}
+      <div class="gm-choice">
+        <div class="d-flex align-items-center gap-3">
+          <span class="gm-choice-icon"><i class="bi bi-signpost-split-fill"></i></span>
+          <h5>{{ trilha.name }}</h5>
+        </div>
+        {% if trilha.descricao %}
+        <p class="text-muted small mb-0">{{ trilha.descricao }}</p>
+        {% endif %}
+        <div class="gm-choice-meta">
+          <span><i class="bi bi-list-check"></i> {{ trilha.total_atividades }} atividade{{ trilha.total_atividades|pluralize }}</span>
+          <span><i class="bi bi-flag"></i> Complete {{ trilha.minimo_atividades }}</span>
+          {% if trilha.gamificacao_bonus %}
+          <span class="text-success"><i class="bi bi-gift"></i> +{{ trilha.gamificacao_bonus.pontos }} pts</span>
+          {% endif %}
+          {% if trilha.total_inscritos %}
+          <span><i class="bi bi-people"></i> {{ trilha.total_inscritos }} aluno{{ trilha.total_inscritos|pluralize }}</span>
+          {% endif %}
+        </div>
+        <form method="post" action="{% url 'presente:trilha_inscrever' trilha.pk %}" class="mt-auto">
+          {% csrf_token %}
+          <button type="submit" class="btn gm-btn-3d gm-btn-go w-100">Começar</button>
+        </form>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+</div>
+{% endblock %}

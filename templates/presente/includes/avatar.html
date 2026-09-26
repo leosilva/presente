@@ -1,0 +1,1 @@
+{% if u.avatar_url %}<img src="{{ u.avatar_url }}" alt="" class="gm-avatar" loading="lazy">{% else %}<span class="gm-avatar" aria-hidden="true">{% if u.first_name %}{{ u.first_name|slice:":1" }}{{ u.last_name|slice:":1" }}{% else %}{{ u.username|slice:":2" }}{% endif %}</span>{% endif %}

@@ -2,76 +2,48 @@
 
 {% block app_content %}
 <div class="container-fluid">
-  <div class="row g-4">
-    {% if perms.presente.view_activity %}
-    <div class="col-lg-3 col-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-muted text-uppercase mb-2">Atividades</h6>
-              <h2 class="mb-0">{{ activities }}</h2>
-            </div>
-            <div class="text-success" style="font-size: 3rem;">
-              <i class="bi bi-list-check"></i>
-            </div>
-          </div>
-        </div>
-        <div class="card-footer bg-light">
-          <a href="{% url 'presente:activity_list' %}" class="small text-decoration-none">
-            Ver todas <i class="bi bi-arrow-right"></i>
-          </a>
-        </div>
-      </div>
-    </div>
-    {% endif %}
 
-    <div class="col-lg-3 col-6">
-      <div class="card h-100">
-        <div class="card-body">
-          <div class="d-flex justify-content-between align-items-center">
-            <div>
-              <h6 class="text-muted text-uppercase mb-2">Minhas Presenças</h6>
-              <h2 class="mb-0">{{ my_attendances_count }}</h2>
-            </div>
-            <div class="text-info" style="font-size: 3rem;">
-              <i class="bi bi-check2-circle"></i>
-            </div>
-          </div>
-        </div>
-        <div class="card-footer bg-light">
-          <a href="{% url 'presente:my_attendances' %}" class="small text-decoration-none">
-            Ver todas <i class="bi bi-arrow-right"></i>
-          </a>
-        </div>
+  <!-- Barra de status -->
+  <div class="card mb-4">
+    <div class="card-body py-2">
+      <div class="gm-statbar">
+        <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-stat gm-stat--points" title="Seus pontos">
+          <i class="bi bi-star-fill"></i> {{ my_points }}
+        </a>
+        <a href="{% url 'presente:conquistas' %}" class="gm-stat gm-stat--level" title="Seu nível">
+          <i class="bi bi-bar-chart-steps"></i> {{ nivel_atual.nome|default:"Iniciante" }}
+        </a>
+        <a href="{% if evento_atual %}{% url 'presente:ranking' evento_atual.pk %}{% else %}{% url 'presente:ranking' %}{% endif %}" class="gm-stat gm-stat--rank" title="Sua posição no ranking">
+          <i class="bi bi-trophy-fill"></i> {% if minha_posicao_dashboard %}#{{ minha_posicao_dashboard }}{% else %}—{% endif %}
+        </a>
+        <a href="{% url 'presente:my_attendances' %}" class="gm-stat text-info" title="Suas presenças">
+          <i class="bi bi-check2-circle"></i> {{ my_attendances_count }}
+        </a>
+        {% if perms.presente.view_activity %}
+        <a href="{% url 'presente:activity_list' %}" class="gm-stat text-success" title="Atividades">
+          <i class="bi bi-list-check"></i> {{ activities }}
+        </a>
+        {% endif %}
       </div>
-    </div>
-  
-  <div class="col-lg-3 col-6">
-  <div class="card h-100">
-    <div class="card-body">
-      <div class="d-flex justify-content-between align-items-center">
-        <div>
-          <h6 class="text-muted text-uppercase mb-2">Minhas Pontuações</h6>
-          <h2 class="mb-0">{{ my_points }}</h2>
-        </div>
-        <div class="text-warning" style="font-size: 3rem;">
-          <i class="bi bi-trophy-fill"></i>
-        </div>
-      </div>
-    </div>
-    <div class="card-footer bg-light">
-       <a href="{% url 'presente:minhas_pontuacoes' %}" class="small text-decoration-none">
-         Ver todas <i class="bi bi-arrow-right"></i>
-       </a>
     </div>
   </div>
-</div>
- </div>
 
-  {% if recent_attendances %}
-  <div class="row mt-4">
-    <div class="col-12">
+  <div class="row g-4">
+    <!-- Coluna principal -->
+    <div class="col-lg-8">
+
+      {% if primeira_missao %}
+      <div class="mission-card mb-4">
+        <div class="mission-icon"><i class="bi bi-flag-fill"></i></div>
+        <div>
+          <small class="text-uppercase fw-bold">Sua primeira missão</small>
+          <div class="fs-5 fw-bold">Registre sua 1ª presença</div>
+          <small>Escaneie o QR Code de uma atividade e desbloqueie <strong>{{ primeira_missao.nome }}</strong>{% if primeira_missao.pontos %} (+{{ primeira_missao.pontos }} pts){% endif %}.</small>
+        </div>
+      </div>
+      {% endif %}
+
+      {% if recent_attendances %}
       <div class="card card-primary">
         <div class="card-header">
           <div class="card-title">
@@ -82,48 +54,25 @@
           </a>
         </div>
         <div class="card-body p-0">
-          <div class="table-responsive">
-            <table class="table table-striped table-hover mb-0">
-              <thead>
-                <tr>
-                  <th>Atividade</th>
-                  <th>Tags</th>
-                  <th>Data da Atividade</th>
-                  <th>Presença Registrada</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for attendance in recent_attendances %}
-                <tr>
-                  <td>{{ attendance.activity.title }}</td>
-                  <td>
-                    {% if attendance.activity.tags.all %}
-                      {% for tag in attendance.activity.tags.all %}
-                        <span class="badge bg-secondary me-1">{{ tag.name }}</span>
-                      {% endfor %}
-                    {% else %}
-                      <span class="text-muted small">Sem tags</span>
-                    {% endif %}
-                  </td>
-                  <td>{{ attendance.activity.start_time|date:"d/m/Y H:i" }}</td>
-                  <td>
-                    <i class="bi bi-check-circle-fill text-success"></i>
-                    {{ attendance.checked_in_at|date:"d/m/Y H:i:s" }}
-                  </td>
-                </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
+          <ul class="points-timeline">
+            {% for attendance in recent_attendances %}
+            <li>
+              <span class="pt-icon pt-icon--credit"><i class="bi bi-check-lg"></i></span>
+              <div class="pt-body">
+                <div class="pt-title">{{ attendance.activity.title }}</div>
+                <div class="pt-date">
+                  {{ attendance.checked_in_at|date:"d/m/Y H:i" }}
+                  {% for tag in attendance.activity.tags.all %}
+                    <span class="badge bg-secondary ms-1">{{ tag.name }}</span>
+                  {% endfor %}
+                </div>
+              </div>
+            </li>
+            {% endfor %}
+          </ul>
         </div>
       </div>
-    </div>
-  </div>
-  {% endif %}
-
-  {% if not recent_attendances %}
-  <div class="row mt-4">
-    <div class="col-12">
+      {% else %}
       <div class="card card-info card-outline">
         <div class="card-header">
           <div class="card-title">
@@ -140,17 +89,61 @@
               <li><strong>Presenças:</strong> Acompanhe quem registrou presença e consulte o histórico rapidamente.</li>
               <li><strong>Pontuações:</strong> Atribua pontos para atividades e acompanhe o histórico de pontuações.</li>
             {% else %}
-              <li><strong>Atividades:</strong> Registre presença escaneando o QR Code exibido na sala ou no evento.</li>
-              <li><strong>QR Code:</strong> O código muda automaticamente para garantir que apenas quem está presente possa usá-lo.</li>
-              <li><strong>Tags:</strong> Use tags para filtrar e visualizar suas presenças com facilidade.</li>
-              <li><strong>Presenças:</strong> Consulte seu histórico de presenças de forma simples no <strong>presente!</strong>.</li>
-              <li><strong>Pontuações:</strong> Consulte seu histórico de pontuações de forma simples no <strong>presente!</strong>.</li>
+              <li><strong>Presença:</strong> Escaneie o QR Code exibido na sala ou no evento.</li>
+              <li><strong>Pontos:</strong> Cada presença rende pontos e faz você subir de nível.</li>
+              <li><strong>Conquistas e trilhas:</strong> Complete desafios para ganhar bônus.</li>
+              <li><strong>Loja:</strong> Troque seus pontos por brindes.</li>
             {% endif %}
           </ul>
         </div>
       </div>
+      {% endif %}
+    </div>
+
+    <!-- Coluna lateral -->
+    <div class="col-lg-4">
+      <div class="gm-side-card">
+        <div class="gm-kicker">Nível</div>
+        <h5>{{ nivel_atual.nome|default:"Iniciante" }}</h5>
+        {% include "presente/includes/nivel_progresso.html" %}
+      </div>
+
+      <div class="gm-side-card">
+        <div class="gm-kicker">Ranking{% if evento_atual %} · {{ evento_atual.nome }}{% endif %}</div>
+        <div class="d-flex align-items-center justify-content-between gap-3">
+          <div>
+            {% if minha_posicao_dashboard %}
+              <h5>Você está em #{{ minha_posicao_dashboard }}</h5>
+              <p class="text-muted small mb-0">Participe de mais atividades para subir!</p>
+            {% else %}
+              <h5>Entre na disputa!</h5>
+              <p class="text-muted small mb-0">Ganhe pontos para aparecer no ranking.</p>
+            {% endif %}
+          </div>
+          <i class="bi bi-shield-fill text-warning" style="font-size: 3rem;"></i>
+        </div>
+        <a href="{% if evento_atual %}{% url 'presente:ranking' evento_atual.pk %}{% else %}{% url 'presente:ranking' %}{% endif %}" class="btn btn-outline-primary gm-btn-3d w-100 mt-3">
+          Ver ranking
+        </a>
+      </div>
+
+      <div class="gm-side-card">
+        <div class="gm-kicker">Trilhas e conquistas</div>
+        <div class="d-flex align-items-center justify-content-between gap-3">
+          <div>
+            <h5>Escolha sua trilha</h5>
+            <p class="text-muted small mb-0">Siga um caminho de atividades no evento e ganhe bônus.</p>
+          </div>
+          <i class="bi bi-signpost-split-fill text-info" style="font-size: 3rem;"></i>
+        </div>
+        <a href="{% url 'presente:trilhas' %}" class="btn gm-btn-3d gm-btn-go w-100 mt-3">
+          Ver trilhas
+        </a>
+        <a href="{% url 'presente:conquistas' %}" class="btn btn-outline-primary gm-btn-3d w-100 mt-2">
+          Ver conquistas
+        </a>
+      </div>
     </div>
   </div>
-  {% endif %}
 </div>
 {% endblock %}
