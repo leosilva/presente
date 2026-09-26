@@ -19,6 +19,7 @@ from .models import (
     Conquista,
     ConquistaUsuario,
     InscricaoTrilha,
+    TipoGamificacao,
 )
 
 
@@ -543,6 +544,53 @@ class TrocaService:
         return handler(**kwargs)
 
 class TrilhaService:
+    BONUS_POR_ATIVIDADE = 10
+
+    @classmethod
+    def bonus_sugerido(cls, minimo_atividades):
+        return max(1, minimo_atividades or 1) * cls.BONUS_POR_ATIVIDADE
+
+    @classmethod
+    @transaction.atomic
+    def definir_bonus(cls, trilha, pontos, tipo=TipoGamificacao.Tipo.TROFEU):
+        """Garante que a trilha tenha recompensa; quem já concluiu recebe na hora."""
+        tipo_obj, _criado = TipoGamificacao.objects.get_or_create(trilha=trilha, tipo=tipo)
+        titulo = f"Trilha concluída: {trilha.name}"[:150]
+        bonus = trilha.gamificacao_bonus
+
+        if bonus is None:
+            bonus = Gamificacao.objects.create(titulo=titulo, tipo=tipo_obj, trilha=trilha, pontos=pontos)
+            trilha.gamificacao_bonus = bonus
+            trilha.save(update_fields=["gamificacao_bonus"])
+            usuarios = (
+                Attendance.objects.filter(activity__trilha=trilha)
+                .values_list("user", flat=True)
+                .distinct()
+            )
+            from django.contrib.auth import get_user_model
+            for user in get_user_model().objects.filter(pk__in=usuarios):
+                PointService._check_trilha_bonus(user, trilha, evento=trilha.evento)
+            return bonus
+
+        # Sem disparar o signal de recálculo: ele só vale para gamificação de atividade.
+        Gamificacao.objects.filter(pk=bonus.pk).update(titulo=titulo, tipo=tipo_obj, pontos=pontos)
+        return bonus
+
+    @classmethod
+    def abrir_bau(cls, user, trilha):
+        registro = (
+            UsuarioGamificacao.objects.filter(user=user, gamificacao_id=trilha.gamificacao_bonus_id)
+            .select_related("gamificacao__tipo")
+            .first()
+            if trilha.gamificacao_bonus_id
+            else None
+        )
+        if registro is None:
+            raise ValidationError(_("Complete a trilha para abrir o baú."))
+        if registro.bau_aberto_em is None:
+            registro.bau_aberto_em = timezone.now()
+            registro.save(update_fields=["bau_aberto_em"])
+        return registro
 
     @classmethod
     def concluida(cls, user, trilha):
@@ -594,15 +642,28 @@ class TrilhaService:
                 estado = "locked"
             etapas.append({"atividade": atividade, "estado": estado})
 
+        registro = (
+            UsuarioGamificacao.objects.filter(user=user, gamificacao_id=trilha.gamificacao_bonus_id).first()
+            if trilha.gamificacao_bonus_id
+            else None
+        )
+        if registro is None:
+            bau = "fechado"
+        elif registro.bau_aberto_em is None:
+            bau = "pronto"
+        else:
+            bau = "aberto"
+
         return {
             "trilha": trilha,
             "etapas": etapas,
             "feitas": min(feitas, necessario),
             "necessario": necessario,
             "percentual": round(min(feitas, necessario) * 100 / necessario),
-            "completa": cls.concluida(user, trilha) or (
+            "completa": registro is not None or (
                 not trilha.gamificacao_bonus_id and feitas >= necessario
             ),
+            "bau": bau,
         }
 
 

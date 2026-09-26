@@ -45,6 +45,16 @@
                 </div>
               {% endif %}
 
+              {% for trilha in baus_novos %}
+                <a href="{% url 'presente:trilhas' %}?trilha={{ trilha.pk }}" class="checkin-unlock checkin-unlock--chest mb-2 text-decoration-none text-reset">
+                  <i class="bi bi-gift-fill"></i>
+                  <div>
+                    <small class="text-muted text-uppercase fw-bold">Trilha concluída</small>
+                    <div class="fw-bold">{{ trilha.name }}: abra seu baú!</div>
+                  </div>
+                </a>
+              {% endfor %}
+
               {% for novo in conquistas_novas %}
                 <div class="checkin-unlock mb-2">
                   <i class="bi bi-award-fill"></i>

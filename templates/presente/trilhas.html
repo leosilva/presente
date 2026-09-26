@@ -7,6 +7,68 @@
 
 {% block extra_body %}
 {{ block.super }}
+<div class="gm-reward" id="gm-reward" role="dialog" aria-modal="true" aria-labelledby="gm-reward-title" hidden>
+  <div class="gm-reward-card">
+    <div class="gm-reward-chest"><i class="bi bi-box2-heart-fill"></i></div>
+    <div class="gm-reward-kicker" id="gm-reward-trilha"></div>
+    <div class="gm-reward-points" id="gm-reward-title"></div>
+    <div class="gm-reward-prize" id="gm-reward-premio"></div>
+    <button type="button" class="btn gm-btn-3d gm-btn-go w-100 mt-3" id="gm-reward-ok">Continuar</button>
+  </div>
+</div>
+<script>
+  (function () {
+    var modal = document.getElementById("gm-reward");
+
+    function confete() {
+      if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      var cores = ["#58cc02", "#1cb0f6", "#ffc800", "#ff4b4b", "#ce82ff"];
+      var camada = document.createElement("div");
+      camada.className = "gm-confetti";
+      camada.setAttribute("aria-hidden", "true");
+      for (var i = 0; i < 80; i++) {
+        var p = document.createElement("span");
+        p.style.left = Math.random() * 100 + "vw";
+        p.style.background = cores[i % cores.length];
+        p.style.animationDuration = 1.8 + Math.random() * 1.6 + "s";
+        p.style.animationDelay = Math.random() * 0.4 + "s";
+        camada.appendChild(p);
+      }
+      document.body.appendChild(camada);
+      setTimeout(function () { camada.remove(); }, 4500);
+    }
+
+    document.querySelectorAll(".gm-chest-form").forEach(function (form) {
+      form.addEventListener("submit", function (e) {
+        e.preventDefault();
+        var botao = form.querySelector("button");
+        botao.disabled = true;
+        botao.classList.add("gm-chest--opening");
+        fetch(form.action, {
+          method: "POST",
+          headers: { "Accept": "application/json", "X-CSRFToken": form.querySelector("[name=csrfmiddlewaretoken]").value },
+          credentials: "same-origin",
+        })
+          .then(function (r) { if (!r.ok) throw r; return r.json(); })
+          .then(function (dados) {
+            setTimeout(function () {
+              document.getElementById("gm-reward-trilha").textContent = dados.trilha + ": concluída!";
+              document.getElementById("gm-reward-title").textContent = "+" + dados.pontos + " pts";
+              document.getElementById("gm-reward-premio").textContent = dados.premio ? "Você ganhou " + dados.premio + "!" : "";
+              modal.hidden = false;
+              document.getElementById("gm-reward-ok").focus();
+              confete();
+            }, 600);
+          })
+          .catch(function () { form.submit(); });
+      });
+    });
+
+    document.getElementById("gm-reward-ok").addEventListener("click", function () {
+      window.location.reload();
+    });
+  })();
+</script>
 <script>
   (function () {
     function closeAll(except) {
@@ -84,7 +146,8 @@
           <span class="progress-bar {% if c.completa %}bg-success{% endif %}" style="width: {{ c.percentual }}%;"></span>
         </span>
         <span class="gm-trail-card-meta">
-          {% if c.completa %}Concluída!{% else %}{{ c.feitas }} de {{ c.necessario }} atividades{% endif %}
+          {% if c.bau == "pronto" %}<span class="gm-chest-badge"><i class="bi bi-gift-fill"></i> Baú para abrir!</span>
+          {% elif c.completa %}Concluída!{% else %}{{ c.feitas }} de {{ c.necessario }} atividades{% endif %}
         </span>
       </span>
     </button>
@@ -157,12 +220,27 @@
         {% endfor %}
 
         <div class="gm-step">
-          <span class="gm-node gm-node--chest {% if c.completa %}gm-node--done{% endif %}" title="{% if c.completa %}Bônus recebido{% else %}Bônus da trilha{% endif %}">
-            <i class="bi bi-{% if c.completa %}gift-fill{% else %}gift{% endif %}"></i>
-          </span>
+          {% if c.bau == "pronto" %}
+          <form method="post" action="{% url 'presente:trilha_abrir_bau' c.trilha.pk %}" class="gm-chest-form">
+            {% csrf_token %}
+            <button type="submit" class="gm-chest gm-chest--ready" aria-label="Abrir o baú da trilha {{ c.trilha.name }}">
+              <i class="bi bi-gift-fill"></i>
+            </button>
+          </form>
+          <div class="gm-step-label">Toque para abrir o baú!</div>
+          {% elif c.bau == "aberto" %}
+          <span class="gm-chest gm-chest--open" title="Baú aberto"><i class="bi bi-box2-heart-fill"></i></span>
           <div class="gm-step-label">
-            {% if c.completa %}Trilha concluída!{% else %}Bônus da trilha{% endif %}
+            Baú aberto
+            {% if c.trilha.gamificacao_bonus %}<small>+{{ c.trilha.gamificacao_bonus.pontos }} pts recebidos</small>{% endif %}
           </div>
+          {% else %}
+          <span class="gm-chest gm-chest--locked" title="Complete a trilha para abrir"><i class="bi bi-gift"></i></span>
+          <div class="gm-step-label">
+            Baú da trilha
+            {% if c.trilha.gamificacao_bonus %}<small>+{{ c.trilha.gamificacao_bonus.pontos }} pts ao completar</small>{% endif %}
+          </div>
+          {% endif %}
         </div>
       </div>
 

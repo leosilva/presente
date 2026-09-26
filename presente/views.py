@@ -11,7 +11,7 @@ from django.contrib import messages
 from django.shortcuts import get_object_or_404,render,redirect
 from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from django.urls import reverse, reverse_lazy
 from django_filters.views import FilterView
 from django_weasyprint import WeasyTemplateResponseMixin
@@ -361,8 +361,12 @@ class CheckInView(LoginRequiredMixin, TemplateView):
                         .select_related("gamificacao").order_by("pk")
                     )
                     progresso_depois = NivelService.progresso(user)
+                    gamificacoes_ganhas = [g.gamificacao_id for g in ganhos if g.gamificacao_id]
                     context.update(
                         {
+                            "baus_novos": TrilhaGamificacao.objects.filter(
+                                gamificacao_bonus_id__in=gamificacoes_ganhas
+                            ),
                             "ganhos": ganhos,
                             "pontos_ganhos": sum(g.pontos for g in ganhos),
                             "conquistas_novas": ConquistaUsuario.objects.filter(
@@ -1219,4 +1223,29 @@ class ComoFuncionaView(LoginRequiredMixin, PageTitleMixin, TemplateView):
         context["conquistas_ativas"] = Conquista.objects.filter(status=True).order_by("valor_necessario")
         context["marcos"] = MarcosDiversidade.objects.select_related("gamificacao_bonus")
         return context
+
+
+class TrilhaAbrirBauView(LoginRequiredMixin, View):
+    def post(self, request, pk):
+        trilha = get_object_or_404(TrilhaGamificacao, pk=pk)
+        quer_json = request.headers.get("Accept", "").startswith("application/json")
+        try:
+            registro = TrilhaService.abrir_bau(request.user, trilha)
+        except ValidationError as e:
+            if quer_json:
+                return JsonResponse({"erro": e.message}, status=400)
+            messages.error(request, e.message)
+            return redirect(f"{reverse('presente:trilhas')}?trilha={trilha.pk}")
+
+        bonus = registro.gamificacao
+        if quer_json:
+            return JsonResponse({
+                "pontos": bonus.pontos,
+                "premio": {"BDG": "um badge", "TRF": "um troféu", "MDL": "uma medalha"}.get(
+                    bonus.tipo.tipo if bonus.tipo_id else "", ""
+                ),
+                "trilha": trilha.name,
+            })
+        messages.success(request, _(f"Baú aberto: +{bonus.pontos} pts!"))
+        return redirect(f"{reverse('presente:trilhas')}?trilha={trilha.pk}")
 

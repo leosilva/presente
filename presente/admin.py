@@ -1,4 +1,6 @@
+from django import forms
 from django.contrib import admin
+from .services import TrilhaService
 from .models import (
     Activity,
     Attendance,
@@ -72,11 +74,50 @@ class AttendanceAdmin(admin.ModelAdmin):
     network_display.short_description = "Rede"
 
 
+class TrilhaAdminForm(forms.ModelForm):
+    pontos_bonus = forms.IntegerField(
+        label="Pontos do baú (bônus)",
+        min_value=1,
+        help_text="Recompensa de quem completar a trilha. Sugestão: 10 pts por atividade exigida.",
+    )
+    tipo_bonus = forms.ChoiceField(
+        label="Prêmio",
+        choices=TipoGamificacao.Tipo.choices,
+        initial=TipoGamificacao.Tipo.TROFEU,
+    )
+
+    class Meta:
+        model = TrilhaGamificacao
+        fields = ["name", "descricao", "evento", "minimo_atividades"]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        bonus = self.instance.gamificacao_bonus if self.instance.pk else None
+        if bonus:
+            self.fields["pontos_bonus"].initial = bonus.pontos
+            if bonus.tipo_id:
+                self.fields["tipo_bonus"].initial = bonus.tipo.tipo
+        else:
+            minimo = self.instance.minimo_atividades if self.instance.pk else 1
+            self.fields["pontos_bonus"].initial = TrilhaService.bonus_sugerido(minimo)
+
+
 @admin.register(TrilhaGamificacao)
 class TrilhaGamificacaoAdmin(admin.ModelAdmin):
-    list_display = ("name", "evento", "minimo_atividades", "gamificacao_bonus")
+    form = TrilhaAdminForm
+    list_display = ("name", "evento", "minimo_atividades", "pontos_do_bau")
     list_filter = ("evento",)
     search_fields = ("name",)
+
+    @admin.display(description="Baú")
+    def pontos_do_bau(self, obj):
+        return f"+{obj.gamificacao_bonus.pontos} pts" if obj.gamificacao_bonus_id else "—"
+
+    def save_model(self, request, obj, form, change):
+        super().save_model(request, obj, form, change)
+        TrilhaService.definir_bonus(
+            obj, form.cleaned_data["pontos_bonus"], form.cleaned_data["tipo_bonus"]
+        )
 
 
 @admin.register(InscricaoTrilha)

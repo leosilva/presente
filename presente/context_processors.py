@@ -1,4 +1,4 @@
-from .models import PerfilGamificado
+from .models import PerfilGamificado, UsuarioGamificacao
 from .services import NivelService, PointService
 
 
@@ -16,4 +16,9 @@ def gamificacao_context(request):
         "percentual": progresso["percentual"],
         "pontos_faltando": progresso["pontos_faltando"],
         "progresso_nivel": progresso,
+        "baus_para_abrir": UsuarioGamificacao.objects.filter(
+            user=request.user,
+            bau_aberto_em__isnull=True,
+            gamificacao__trilhas_bonus__isnull=False,
+        ).count(),
     }

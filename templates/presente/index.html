@@ -105,6 +105,15 @@
 
     <!-- Coluna lateral -->
     <div class="col-lg-4">
+      {% if baus_para_abrir %}
+      <a href="{% url 'presente:trilhas' %}" class="gm-side-card gm-side-card--chest d-flex align-items-center gap-3 text-decoration-none text-reset">
+        <span class="gm-chest gm-chest--ready gm-chest--small"><i class="bi bi-gift-fill"></i></span>
+        <div>
+          <div class="gm-kicker">Recompensa</div>
+          <h5 class="mb-0">Você tem {{ baus_para_abrir }} baú{{ baus_para_abrir|pluralize:"s" }} para abrir!</h5>
+        </div>
+      </a>
+      {% endif %}
       <div class="gm-side-card">
         <div class="gm-kicker">Nível</div>
         <h5>{{ nivel_atual.nome|default:"Iniciante" }}</h5>

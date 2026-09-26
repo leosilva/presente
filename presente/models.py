@@ -571,6 +571,12 @@ class UsuarioGamificacao(models.Model):
         verbose_name=_("Gamificação"),
     )
     data_concedida = models.DateTimeField(_("Data concedida"), auto_now_add=True)
+    bau_aberto_em = models.DateTimeField(
+        _("Baú aberto em"),
+        null=True,
+        blank=True,
+        help_text=_("Para bônus de trilha: quando o aluno abriu o baú. Os pontos já são creditados ao concluir."),
+    )
 
     class Meta:
         unique_together = ["user", "gamificacao"]
