@@ -1,7 +1,11 @@
+import logging
+
 from allauth.account.adapter import DefaultAccountAdapter
 from allauth.socialaccount.adapter import DefaultSocialAccountAdapter
 from allauth.account.utils import user_email, user_field
 from django.conf import settings
+
+logger = logging.getLogger(__name__)
 
 
 class CustomAccountAdapter(DefaultAccountAdapter):
@@ -124,3 +128,26 @@ class SuapSocialAccountAdapter(DefaultSocialAccountAdapter):
 
     def is_open_for_signup(self, request, sociallogin):
         return settings.OPEN_FOR_SIGNUP or False
+
+    def on_authentication_error(
+        self,
+        request,
+        provider,
+        error=None,
+        exception=None,
+        extra_context=None,
+    ):
+        logger.error(
+            "Erro de autenticação social (provider=%s, error=%s): %s",
+            provider,
+            error,
+            exception,
+            exc_info=exception,
+        )
+        return super().on_authentication_error(
+            request,
+            provider,
+            error=error,
+            exception=exception,
+            extra_context=extra_context,
+        )
