@@ -739,3 +739,7 @@ button.gm-node:active { transform: translateY(4px); box-shadow: none; }
   align-items: center;
   justify-content: center;
 }
+
+/* Loja: cards de brinde */
+.gm-brinde-nome { font-weight: 700; overflow-wrap: anywhere; }
+.gm-brinde .btn:disabled { opacity: 1; }
