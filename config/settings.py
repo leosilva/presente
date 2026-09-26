@@ -201,6 +201,16 @@ else:
         },
     }
 
+    # O Render (e proxies parecidos) termina o HTTPS na borda e fala com o
+    # container por HTTP puro. Sem isso, o Django acha que toda requisição é
+    # HTTP, o que faz a redirect_uri do OAuth do SUAP sair como "http://"
+    # (divergindo do que está cadastrado lá) e os cookies de sessão/CSRF
+    # saírem sem a flag Secure — quebra o login social, mais visível no
+    # Safari/iOS por ser mais restritivo com cookies entre domínios.
+    SECURE_PROXY_SSL_HEADER = ("HTTP_X_FORWARDED_PROTO", "https")
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+
 
 # Default primary key field type
 
