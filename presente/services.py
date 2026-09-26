@@ -350,7 +350,7 @@ class TrocaService:
         ids_brindes = [item["brinde"].pk for item in itens]
         brindes_locked = {
         b.pk: b
-        for b in Brinde.objects.filter(pk__in=ids_brindes)
+        for b in Brinde.objects.select_for_update().filter(pk__in=ids_brindes)
     }
 
         # Substitui os brindes do input pelos registros bloqueados do banco
