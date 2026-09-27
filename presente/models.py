@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from taggit.managers import TaggableManager
 from django.db.models import Case, When, Value, IntegerField
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -679,6 +680,8 @@ class Brinde(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.pontos_necessarios} pts/un)"
+    def get_absolute_url(self):
+        return reverse("presente:brinde_view", kwargs={"pk": self.pk})
 
 
 class Troca(models.Model):

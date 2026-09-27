@@ -64,7 +64,7 @@ Menu.add_item("presente",
         "Meus Brindes",
         reverse("presente:minhas_recompensas"),
         icon="bi bi-cart3",
-        weight=6  # controla a ordem
+        weight=7  # controla a ordem
     )
 )
 # ADMINISTRAÇÃO section starts here (items below appear under "ADMINISTRAÇÃO" header)
@@ -114,3 +114,13 @@ Menu.add_item(
             
     ),     
     )
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Recompensas",
+        reverse("presente:admin_brindes"),
+        icon="bi bi-gift",
+        weight=14,
+        check=lambda r: r.user.is_superuser or r.user.is_staff,
+    ),
+)

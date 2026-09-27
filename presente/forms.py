@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.utils.translation import gettext_lazy as _
 from taggit.models import Tag
-from .models import Activity, Network, Evento
+from .models import Activity, Network, Evento,Brinde
 
 User = get_user_model()
 
@@ -221,3 +221,18 @@ class AttendanceDeleteForm(forms.Form):
             "required": _("A justificativa é obrigatória para remover uma presença."),
         },
     )
+class BrindeForm(forms.ModelForm):
+    class Meta:
+        model = Brinde
+        fields = [
+            "evento",
+            "nome",
+            "descricao",
+            "pontos_necessarios",
+            "quantidade_disponivel",
+            "data_validade",
+            "ativo",
+        ]
+        widgets = {
+            "data_validade": forms.DateInput(attrs={"type": "date"}),
+        }
