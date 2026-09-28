@@ -3,31 +3,33 @@
 {% block app_content %}
 <div class="container-fluid">
 
-  <!-- Barra de status -->
-  <div class="card mb-4">
-    <div class="card-body py-2">
-      <div class="gm-statbar">
-        <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-stat gm-stat--points" title="Pontos ganhos (ranking e nível)">
-          <i class="bi bi-star-fill"></i> {{ my_points }}
-        </a>
-        <a href="{% url 'presente:loja' %}" class="gm-stat text-success" title="Saldo para gastar na loja">
-          <i class="bi bi-wallet2"></i> {{ meu_saldo }}
-        </a>
-        <a href="{% url 'presente:conquistas' %}" class="gm-stat gm-stat--level" title="Seu nível">
-          <i class="bi bi-bar-chart-steps"></i> {{ nivel_atual.nome|default:"Iniciante" }}
-        </a>
-        <a href="{% if evento_atual %}{% url 'presente:ranking' evento_atual.pk %}{% else %}{% url 'presente:ranking' %}{% endif %}" class="gm-stat gm-stat--rank" title="Sua posição no ranking">
-          <i class="bi bi-trophy-fill"></i> {% if minha_posicao_dashboard %}#{{ minha_posicao_dashboard }}{% else %}—{% endif %}
-        </a>
-        <a href="{% url 'presente:my_attendances' %}" class="gm-stat text-info" title="Suas presenças">
-          <i class="bi bi-check2-circle"></i> {{ my_attendances_count }}
-        </a>
-        {% if perms.presente.view_activity %}
-        <a href="{% url 'presente:activity_list' %}" class="gm-stat text-success" title="Atividades">
-          <i class="bi bi-list-check"></i> {{ activities }}
-        </a>
-        {% endif %}
-      </div>
+  <!-- Resumo -->
+  <div class="row g-3 mb-4">
+    <div class="col-6 col-lg-3">
+      <a href="{% url 'presente:minhas_pontuacoes' %}" class="gm-kpi" title="Pontos ganhos (ranking e nível)">
+        <span class="gm-kpi__icon gm-kpi__icon--points"><i class="bi bi-star-fill"></i></span>
+        <span><span class="gm-kpi__value">{{ my_points }}</span><span class="gm-kpi__label">Pontos</span></span>
+      </a>
+    </div>
+    <div class="col-6 col-lg-3">
+      <a href="{% url 'presente:loja' %}" class="gm-kpi" title="Saldo para gastar na loja">
+        <span class="gm-kpi__icon gm-kpi__icon--saldo"><i class="bi bi-wallet2"></i></span>
+        <span><span class="gm-kpi__value">{{ meu_saldo }}</span><span class="gm-kpi__label">Saldo na loja</span></span>
+      </a>
+    </div>
+    <div class="col-6 col-lg-3">
+      <a href="{% url 'presente:my_attendances' %}" class="gm-kpi" title="Suas presenças">
+        <span class="gm-kpi__icon gm-kpi__icon--presenca"><i class="bi bi-check2-circle"></i></span>
+        <span><span class="gm-kpi__value">{{ my_attendances_count }}</span><span class="gm-kpi__label">Presenças</span></span>
+      </a>
+    </div>
+    <div class="col-6 col-lg-3">
+      <a href="{% url 'presente:conquistas' %}" class="gm-kpi" title="Seu nível">
+        {% with n=nivel_atual.nome|default:"Iniciante"|lower %}
+        <span class="gm-kpi__icon gm-kpi__icon--nivel {% if 'bronze' in n %}is-bronze{% elif 'prata' in n %}is-prata{% elif 'ouro' in n %}is-ouro{% endif %}"><i class="bi bi-award-fill"></i></span>
+        {% endwith %}
+        <span><span class="gm-kpi__value">{{ nivel_atual.nome|default:"Iniciante" }}</span><span class="gm-kpi__label">Nível</span></span>
+      </a>
     </div>
   </div>
 
@@ -79,23 +81,19 @@
       <div class="card card-info card-outline">
         <div class="card-header">
           <div class="card-title">
-            <i class="bi bi-info-circle"></i> Você está no <strong>presente!</strong>
+            <i class="bi bi-info-circle"></i> Como funciona
           </div>
         </div>
         <div class="card-body">
-          <h6>Como funciona:</h6>
           <ul class="mb-0">
             {% if perms.presente.activity_create %}
               <li><strong>Atividades:</strong> Crie atividades definindo data, horário e tempo de renovação do QR Code.</li>
               <li><strong>Tags:</strong> Organize suas atividades com tags para facilitar buscas e relatórios.</li>
-              <li><strong>QR Code:</strong> O <strong>presente!</strong> gera códigos dinâmicos que garantem segurança e evitam compartilhamentos indevidos.</li>
+              <li><strong>QR Code:</strong> O <strong>Presente+</strong> gera códigos dinâmicos que garantem segurança e evitam compartilhamentos indevidos.</li>
               <li><strong>Presenças:</strong> Acompanhe quem registrou presença e consulte o histórico rapidamente.</li>
               <li><strong>Pontuações:</strong> Atribua pontos para atividades e acompanhe o histórico de pontuações.</li>
             {% else %}
-              <li><strong>Presença:</strong> Escaneie o QR Code exibido na sala ou no evento.</li>
-              <li><strong>Pontos:</strong> Cada presença rende pontos e faz você subir de nível.</li>
-              <li><strong>Conquistas e trilhas:</strong> Complete desafios para ganhar bônus.</li>
-              <li><strong>Loja:</strong> Troque seus pontos por brindes.</li>
+              <li>Escaneie o QR Code da sala para registrar presença, ganhar pontos e subir de nível.</li>
             {% endif %}
           </ul>
         </div>
@@ -116,7 +114,10 @@
       {% endif %}
       <div class="gm-side-card">
         <div class="gm-kicker">Nível</div>
-        <h5>{{ nivel_atual.nome|default:"Iniciante" }}</h5>
+        <div class="d-flex align-items-baseline justify-content-between">
+          <h5>{{ nivel_atual.nome|default:"Iniciante" }}</h5>
+          <span class="text-muted small"><i class="bi bi-star-fill text-warning"></i> {{ my_points }} pts</span>
+        </div>
         {% include "presente/includes/nivel_progresso.html" %}
       </div>
 

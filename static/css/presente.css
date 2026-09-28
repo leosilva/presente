@@ -1,3 +1,39 @@
+/* Identidade visual Presente+ (cores extraídas da logo) */
+:root,
+[data-bs-theme="light"],
+[data-bs-theme="dark"] {
+  --presente-blue: #03508f;
+  --presente-blue-dark: #023e70;
+  --presente-green: #62b02a;
+  --bs-primary: #03508f;
+  --bs-primary-rgb: 3, 80, 143;
+  --bs-link-color: #03508f;
+  --bs-link-color-rgb: 3, 80, 143;
+  --bs-link-hover-color: #023e70;
+  --bs-link-hover-color-rgb: 2, 62, 112;
+}
+.btn-primary {
+  --bs-btn-bg: #03508f;
+  --bs-btn-border-color: #03508f;
+  --bs-btn-hover-bg: #023e70;
+  --bs-btn-hover-border-color: #023e70;
+  --bs-btn-active-bg: #023e70;
+  --bs-btn-active-border-color: #023e70;
+  --bs-btn-disabled-bg: #03508f;
+  --bs-btn-disabled-border-color: #03508f;
+}
+.progress {
+  --bs-progress-bar-bg: var(--presente-blue);
+}
+.btn-outline-primary {
+  --bs-btn-color: #03508f;
+  --bs-btn-border-color: #03508f;
+  --bs-btn-hover-bg: #03508f;
+  --bs-btn-hover-border-color: #03508f;
+  --bs-btn-active-bg: #03508f;
+  --bs-btn-active-border-color: #03508f;
+}
+
 /* Breadcrumb improvements */
 .breadcrumb {
   font-size: 0.875rem;
@@ -11,7 +47,7 @@
   transition: color 0.15s ease-in-out;
 }
 .breadcrumb-item a:hover {
-  color: #0d6efd;
+  color: var(--presente-blue);
 }
 .breadcrumb-item.active {
   color: #6c757d;
@@ -42,7 +78,7 @@
 
 .rank-row--self {
   background: rgba(13, 110, 253, 0.06);
-  border-color: #0d6efd;
+  border-color: var(--presente-blue);
 }
 
 .rank-position {
@@ -138,7 +174,7 @@
   align-items: center;
   justify-content: center;
   background: #e7f0ff;
-  color: #0d6efd;
+  color: var(--presente-blue);
   font-weight: 700;
   font-size: 0.9rem;
   text-transform: uppercase;
@@ -281,7 +317,7 @@
   gap: 1rem;
   border-radius: 16px;
   padding: 1.25rem;
-  background: linear-gradient(135deg, #0d6efd, #6f42c1);
+  background: linear-gradient(135deg, var(--presente-blue), #6f42c1);
   color: #fff;
 }
 .mission-card .mission-icon {
@@ -328,7 +364,7 @@
 }
 .checkin-unlock i { font-size: 1.6rem; color: #d4a017; }
 .checkin-levelup {
-  background: linear-gradient(135deg, #0d6efd, #6f42c1);
+  background: linear-gradient(135deg, var(--presente-blue), #6f42c1);
   color: #fff;
   border-radius: 14px;
   padding: 0.85rem 1rem;
@@ -409,7 +445,7 @@
 .gm-stat:hover { background: rgba(0, 0, 0, 0.04); color: inherit; }
 .gm-stat i { font-size: 1.35rem; }
 .gm-stat--points { color: #e0a800; }
-.gm-stat--level { color: #0d6efd; }
+.gm-stat--level { color: var(--presente-blue); }
 .gm-stat--rank { color: #d4a017; }
 .gm-stat--streak { color: #fd7e14; }
 
@@ -673,7 +709,7 @@ button.gm-node:active { transform: translateY(4px); box-shadow: none; }
 .form-section { margin: 1.75rem 0 0.9rem; padding-top: 1.25rem; border-top: 1px solid #e9ecef; }
 .form-section:first-child { margin-top: 0; padding-top: 0; border-top: none; }
 .form-section-title { font-weight: 800; font-size: 1.05rem; }
-.form-section-title i { color: #0d6efd; margin-right: 0.25rem; }
+.form-section-title i { color: var(--presente-blue); margin-right: 0.25rem; }
 .form-section-help { color: #6c757d; font-size: 0.9rem; margin: 0.2rem 0 0; }
 
 .gm-form-preview {
@@ -816,3 +852,39 @@ button.gm-node:active { transform: translateY(4px); box-shadow: none; }
 @media (prefers-reduced-motion: reduce) {
   .gm-chest--ready, .gm-chest--opening, .gm-reward-card { animation: none; }
 }
+
+/* Cards de resumo do dashboard */
+.gm-kpi {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  padding: 0.9rem 1rem;
+  background: #fff;
+  border: 2px solid #e5e5e5;
+  border-radius: 16px;
+  text-decoration: none;
+  color: inherit;
+  height: 100%;
+  transition: transform 0.15s, border-color 0.15s;
+}
+.gm-kpi:hover { transform: translateY(-2px); border-color: var(--presente-blue); color: inherit; }
+.gm-kpi__icon {
+  flex: none;
+  width: 46px;
+  height: 46px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  color: #fff;
+}
+.gm-kpi__icon--points { background: #ffb800; }
+.gm-kpi__icon--saldo { background: var(--presente-green); }
+.gm-kpi__icon--presenca { background: var(--presente-blue); }
+.gm-kpi__icon--nivel { background: var(--presente-blue); }
+.gm-kpi__icon--nivel.is-bronze { background: linear-gradient(135deg, #d99058, #a9622b); }
+.gm-kpi__icon--nivel.is-prata { background: linear-gradient(135deg, #c4ccd4, #8d98a3); }
+.gm-kpi__icon--nivel.is-ouro { background: linear-gradient(135deg, #ffd84d, #d4a017); }
+.gm-kpi__value { display: block; font-size: 1.35rem; font-weight: 800; line-height: 1.1; }
+.gm-kpi__label { display: block; font-size: 0.75rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: #6c757d; }
