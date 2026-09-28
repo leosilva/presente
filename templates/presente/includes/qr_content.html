@@ -30,17 +30,21 @@
     <a href="{{ checkin_url }}" class="qr-code-link d-inline-block bg-white rounded-4 shadow p-2">
       <img src="{{ qr_data_url }}" alt="QR Code" class="img-fluid rounded m-0">
     </a>
+    {% if timeout > 0 %}
     <div class="mt-3 text-muted">
       <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
       Renovando em <span id="countdown-text">{{ timeout }}</span>s
     </div>
+    {% endif %}
   </div>
 
+  {% if timeout > 0 %}
   <div hx-get="{% url 'presente:activity_qr' encoded_id %}"
        hx-trigger="load delay:{{ timeout }}s"
        hx-swap="innerHTML transition:true"
        hx-target="#qr-code-container"
        style="display:none;"></div>
+  {% endif %}
 
 {% else %}
   <div class="alert alert-danger text-center">
@@ -69,7 +73,7 @@
 
     {% if activity.status == 'not_started' %}
     window.qrManager.initActivityStartCountdown({{ seconds_until_start }});
-    {% elif activity.status == 'active' %}
+    {% elif activity.status == 'active' and timeout > 0 %}
     window.qrManager.startQRCountdown({{ timeout }});
     {% endif %}
   });
