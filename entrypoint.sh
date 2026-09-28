@@ -14,8 +14,8 @@ fi
 echo "Running database migrations..."
 python manage.py migrate --noinput
 
-echo "Collecting static files..."
-python manage.py collectstatic --clear --noinput
+# collectstatic roda em build time (ver Dockerfile), não aqui: assim o
+# container não refaz esse trabalho a cada wake-up do free tier do Render.
 
 # Render (e outros PaaS) expõem a porta via $PORT e falam direto com o
 # container por TCP. Sem $PORT, mantemos o socket Unix (setup com Nginx local).
