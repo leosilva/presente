@@ -64,6 +64,15 @@ RUN mkdir -p /app/media
 # Set permissions
 RUN chmod -R 755 /app/staticfiles /app/media
 
+# Coleta os estáticos em build time. Antes isso rodava no entrypoint.sh a
+# cada início de container — no plano Free do Render, o serviço hiberna após
+# 15 min sem tráfego e recria o container do zero a cada acesso, então
+# refazer collectstatic (com --clear) toda vez deixava o "acordar" bem mais
+# lento. STATIC_ROOT precisa bater com o valor configurado no Render.
+RUN SECRET_KEY=build-placeholder BUILD_ENV=production \
+	STATIC_ROOT=/app/staticfiles MEDIA_ROOT=/app/media \
+	python manage.py collectstatic --noinput
+
 # Copy entrypoint script
 COPY entrypoint.sh /app/
 RUN chmod +x /app/entrypoint.sh
