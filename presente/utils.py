@@ -101,9 +101,10 @@ def verify_checkin_token(token, timeout_seconds):
         activity_id = int.from_bytes(id_bytes, byteorder="big")
         timestamp = int.from_bytes(timestamp_bytes, byteorder="big")
 
-        # Check if token has expired
+        # Check if token has expired ("0" no timeout_seconds do formulário
+        # significa "desabilitar expiração", não "expirar imediatamente")
         current_time = int(time.time())
-        if current_time - timestamp > timeout_seconds:
+        if timeout_seconds > 0 and current_time - timestamp > timeout_seconds:
             return None
 
         # Verify the hash
