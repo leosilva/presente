@@ -613,7 +613,7 @@ class ActivityAttendancePDFView(
 
         # Add absolute paths for WeasyPrint
         logo_path = os.path.join(
-            settings.BASE_DIR, "static", "img", "presente-icon.svg"
+            settings.BASE_DIR, "static", "img", "presente-icon.png"
         )
         context["logo_path"] = logo_path
 
