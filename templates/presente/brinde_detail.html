@@ -1,0 +1,75 @@
+{% extends "core/detail.html" %}
+
+{% block app_content %}
+{{ block.super }}
+
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+      <div class="card {% if not object.disponivel %}card-secondary{% else %}card-success{% endif %} card-outline mb-4">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-gift"></i> Disponibilidade</div>
+        </div>
+        <div class="card-body">
+          {% if not object.ativo %}
+          <div class="alert alert-secondary mb-0">
+            <i class="bi bi-x-circle"></i> <strong>Brinde Inativo</strong>
+            <p class="mb-0 mt-2">Este brinde está desativado e não aparece na loja de recompensas.</p>
+          </div>
+          {% elif object.quantidade_disponivel <= 0 %}
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-box-seam"></i> <strong>Estoque Esgotado</strong>
+            <p class="mb-0 mt-2">Não há mais unidades disponíveis para troca.</p>
+          </div>
+          {% elif object.data_validade and object.data_validade < now|date:"Y-m-d" %}
+          <div class="alert alert-warning mb-0">
+            <i class="bi bi-calendar-x"></i> <strong>Prazo Expirado</strong>
+            <p class="mb-0 mt-2">A data de validade deste brinde já passou.</p>
+          </div>
+          {% else %}
+          <div class="alert alert-success mb-0">
+            <i class="bi bi-check-circle"></i> <strong>Disponível para troca</strong>
+            <p class="mb-0 mt-2">Estoque atual: {{ object.quantidade_disponivel }} unidade{{ object.quantidade_disponivel|pluralize }}.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="card card-outline card-primary mb-4">
+        <div class="card-header">
+          <div class="card-title"><i class="bi bi-clock-history"></i> Histórico de Trocas</div>
+          <div class="card-tools">
+            <span class="badge bg-primary">{{ total_trocado }} unidade{{ total_trocado|pluralize }} trocada{{ total_trocado|pluralize }}</span>
+          </div>
+        </div>
+        <div class="card-body p-0">
+          {% if itens_trocados %}
+          <table class="table table-striped mb-0">
+            <thead>
+              <tr>
+                <th>Usuário</th>
+                <th>Quantidade</th>
+                <th>Pontos gastos</th>
+                <th>Data</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for item in itens_trocados %}
+              <tr>
+                <td>{{ item.troca.usuario.get_full_name }}</td>
+                <td>{{ item.quantidade }}</td>
+                <td>{{ item.pontos_total }} pts</td>
+                <td>{{ item.troca.data|date:"d/m/Y H:i" }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+          {% else %}
+          <p class="text-muted p-3 mb-0">Nenhuma troca registrada para este brinde ainda.</p>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
