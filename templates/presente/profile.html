@@ -3,6 +3,10 @@
 
 {% block extra_head %}
 <style>
+  html {
+    overflow-y: scroll;
+  }
+
   .card {
     background-color: transparent !important;
     border: none !important;
@@ -62,12 +66,33 @@
     font-weight: 600;
   }
 
+  .conquistas-title {
+    display: flex;
+    align-items: center;
+    gap: .5rem;
+    margin-bottom: 1rem;
+  }
+
+  .conquistas-title i {
+    color: #0d6efd;
+  }
+
+  .conquistas-title h5 {
+    margin: 0;
+    font-weight: 600;
+  }
+
   .stat-card {
     border: 1px solid #e9ecef;
-    border-radius: 18px;
+    border-radius: 8px;
     background: #f8f9fa;
     min-height: 160px;
-    padding: 1.4rem;
+    padding: 1.25rem;
+  }
+
+  .stat-icon-gold {
+    background: rgba(212,175,55,.16);
+    color: #a3781a;
   }
 
   .stat-card .stat-icon {
@@ -76,7 +101,7 @@
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 14px;
+    border-radius: 8px;
     background: rgba(13,110,253,.12);
     color: #0d6efd;
     font-size: 1.4rem;
@@ -124,7 +149,6 @@
 
   .progress-ring__circle {
     stroke: #0d6efd;
-    transition: stroke-dashoffset .35s ease;
   }
 
   .progress-ring__label {
@@ -143,9 +167,25 @@
     color: #6c757d;
   }
 
+  .level-points-bar {
+    width: 100%;
+    max-width: 200px;
+    margin: .9rem auto 0;
+    height: 6px;
+    border-radius: 4px;
+    background: #e9ecef;
+    overflow: hidden;
+  }
+
+  .level-points-bar span {
+    display: block;
+    height: 100%;
+    background: #0d6efd;
+  }
+
   .accordion .accordion-item {
     border: 1px solid #e9ecef;
-    border-radius: 18px;
+    border-radius: 8px;
     background: #ffffff;
     overflow: hidden;
     margin-bottom: 1rem;
@@ -157,6 +197,31 @@
     color: #212529;
     padding: 1rem 1.25rem;
     font-weight: 600;
+    gap: .5rem;
+  }
+
+  .accordion-button .accordion-icon {
+    width: 26px;
+    height: 26px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+    font-size: .9rem;
+    margin-right: .5rem;
+  }
+
+  .accordion-button .accordion-icon.trophy { background: rgba(212,175,55,.18); color: #a3781a; }
+  .accordion-button .accordion-icon.trail { background: rgba(13,110,253,.12); color: #0d6efd; }
+
+  .accordion-button .accordion-count {
+    margin-left: .5rem;
+    font-size: .72rem;
+    font-weight: 600;
+    color: #6c757d;
+    background: #e9ecef;
+    border-radius: 4px;
+    padding: .15rem .5rem;
   }
 
   .accordion-button:not(.collapsed) {
@@ -168,164 +233,145 @@
     background: #ffffff;
   }
 
-  .badge-card,
   .trilha-card {
     border: 1px solid #e9ecef;
-    border-radius: 16px;
+    border-radius: 8px;
     background: #f8f9fa;
-    min-height: 120px;
   }
 
-  .badge-card .card-body,
-  .trilha-card .card-body {
-    padding: 1rem;
-  }
-
-  .badge-card .badge-title {
-    font-size: 0.85rem;
-    color: #6c757d;
-  }
-
-  .badge-card .badge-name {
-    font-weight: 700;
-    margin-top: 0.4rem;
-  }
-
-  .badge-meta {
-    margin-top: 0.75rem;
-    display: block;
-  }
-
-  .badge-points {
-    font-weight: 700;
+  .trilha-card .trilha-icon {
+    width: 40px;
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: rgba(13,110,253,.12);
     color: #0d6efd;
-  }
-
-  .badge-activity {
-    display: block;
-    margin-top: 0.75rem;
-    background: #e9ecef;
-    color: #6c757d;
-    font-size: 0.92rem;
-    border-radius: 12px;
-    padding: 0.65rem 0.9rem;
-    width: 100%;
+    font-size: 1.1rem;
   }
 
   .premiacao-card {
     border: 1px solid #e9ecef;
-    border-radius: 18px;
-    background: #f8f9fa;
-    min-height: 100%;
+    border-radius: 8px;
+    background: #fff;
+    overflow: hidden;
+    flex: 1 1 320px;
+    max-width: 420px;
   }
 
   .premiacao-card-header {
     display: flex;
     align-items: center;
-    gap: 0.9rem;
+    gap: 0.75rem;
     padding: 1rem 1.25rem;
-    border-bottom: 1px solid #dee2e6;
+    background: #f8f9fa;
+    border-bottom: 1px solid #e9ecef;
   }
 
   .premiacao-card-icon {
-    width: 48px;
-    height: 48px;
+    width: 44px;
+    height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 14px;
-    font-size: 1.25rem;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    border-radius: 8px;
+    font-size: 1.15rem;
+    flex-shrink: 0;
   }
 
   .premiacao-card-icon.badge { background: rgba(255,193,7,.16); color: #d39e00; }
-  .premiacao-card-icon.trophy { background: rgba(25,135,84,.12); color: #198754; }
+  .premiacao-card-icon.trophy { background: rgba(212,175,55,.18); color: #a3781a; }
   .premiacao-card-icon.medal { background: rgba(13,110,253,.12); color: #0d6efd; }
 
   .premiacao-card-header .label-wrap {
     display: flex;
     flex-direction: column;
-    gap: 0.12rem;
+    gap: 0.1rem;
+    min-width: 0;
   }
 
   .premiacao-card-header .label-wrap .type-name {
-    font-weight: 800;
-    font-size: 0.98rem;
-    letter-spacing: 0.02em;
+    font-weight: 700;
+    font-size: 0.95rem;
     color: #212529;
   }
 
   .premiacao-card-header .label-wrap .type-sub {
-    font-size: 0.78rem;
+    font-size: 0.72rem;
     color: #6c757d;
     text-transform: uppercase;
-    letter-spacing: 0.06em;
+    letter-spacing: 0.04em;
   }
 
   .premiacao-card-body {
     display: flex;
-    gap: 1rem;
-    overflow-x: auto;
+    flex-direction: column;
+    gap: .6rem;
     padding: 1rem;
-    -webkit-overflow-scrolling: touch;
   }
 
-  .premiacao-card-body::-webkit-scrollbar { height: 8px; }
-  .premiacao-card-body::-webkit-scrollbar-thumb { background: rgba(0,0,0,0.08); border-radius: 8px; }
-
   .premiacao-item {
-    min-width: 220px;
-    flex: 0 0 auto;
     border: 1px solid #e9ecef;
-    border-radius: 12px;
-    background: #fff;
-    padding: .75rem;
+    border-radius: 8px;
+    background: #f8f9fa;
+    padding: .7rem .8rem;
   }
 
   .premiacao-item-title {
-    font-weight: 700;
-    margin-bottom: .35rem;
+    font-weight: 600;
+    margin-bottom: .3rem;
     color: #212529;
   }
 
   .premiacao-item-points {
-    display: block;
-    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: .3rem;
+    font-weight: 700;
     color: #0d6efd;
-    margin-bottom: 0.6rem;
-    font-size: 1.05rem;
+    margin-bottom: 0.5rem;
+    font-size: .9rem;
   }
 
   .premiacao-item-activity {
-    display: block;
-    margin-top: 0.5rem;
-    background: #f1f3f5;
+    display: flex;
+    align-items: center;
+    gap: .4rem;
+    background: #e9ecef;
     color: #6c757d;
-    font-size: 0.92rem;
-    border-radius: 10px;
-    padding: 0.55rem 0.75rem;
+    font-size: 0.85rem;
+    border-radius: 6px;
+    padding: 0.5rem 0.7rem;
   }
 
-  /* remove contadores inline */
-  .premiacao-card-header .count { display: none; }
+  .premiacoes-wrap {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
 
-  /* ícone mais destacado (voltando ao estilo anterior) */
-  .premiacao-card-icon {
-    width: 48px;
-    height: 48px;
+  .empty-state {
+    border: 1px dashed #dee2e6;
+    border-radius: 8px;
+    background: #f8f9fa;
+    padding: 2rem 1rem;
+    text-align: center;
+    color: #6c757d;
+  }
+
+  .empty-state .empty-icon {
+    width: 44px;
+    height: 44px;
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 14px;
-    font-size: 1.25rem;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+    border-radius: 50%;
+    background: #e9ecef;
+    color: #adb5bd;
+    font-size: 1.3rem;
+    margin-bottom: .6rem;
   }
-
-  /* remove display do contador no header (não renderizar) */
-  .premiacao-card-header .type-sub { display: none; }
-
-  /* pequenos ajustes de espaçamento após mudança */
-  .premiacao-card-header { gap: 0.75rem; padding: 1rem 1.25rem; }
 </style>
 {% endblock %}
 
@@ -439,7 +485,10 @@
 
             <div class="tab-pane fade" id="conquistas">
               <div class="mb-4">
-                <h5 class="mb-3">Minhas Conquistas</h5>
+                <div class="conquistas-title">
+                  <i class="bi bi-trophy"></i>
+                  <h5>Minhas Conquistas</h5>
+                </div>
 
                 <div class="row g-3">
                   <div class="col-md-4">
@@ -474,7 +523,10 @@
                           <span>Nível</span>
                         </div>
                       </div>
-                      <div class="mt-3 text-muted small">
+                      <div class="level-points-bar">
+                        <span style="width: {% widthratio current_level_points|default:0 next_level_points|default:100 100 %}%;"></span>
+                      </div>
+                      <div class="mt-2 text-muted small fw-semibold">
                         {{ current_level_points|default:"0" }} / {{ next_level_points|default:"100" }} pontos
                       </div>
                     </div>
@@ -482,7 +534,7 @@
                   <div class="col-md-4">
                     <div class="stat-card">
                       <div class="d-flex align-items-center gap-3">
-                        <div class="stat-icon bg-success bg-opacity-10 text-success">
+                        <div class="stat-icon stat-icon-gold">
                           <i class="bi bi-trophy-fill"></i>
                         </div>
                         <div class="stat-text">
@@ -499,48 +551,53 @@
                 <div class="accordion-item">
                   <h2 class="accordion-header" id="headingPremiacoes">
                     <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapsePremiacoes" aria-expanded="true" aria-controls="collapsePremiacoes">
+                      <span class="accordion-icon trophy"><i class="bi bi-trophy-fill"></i></span>
                       Minhas Premiações
+                      {% if premiacao_cards %}<span class="accordion-count">{{ premiacao_cards|length }}</span>{% endif %}
                     </button>
                   </h2>
 
                   <div id="collapsePremiacoes" class="accordion-collapse collapse show" aria-labelledby="headingPremiacoes" data-bs-parent="#profileAccordion">
                     <div class="accordion-body">
                       {% if premiacao_cards %}
-                        <div class="row g-3">
+                        <div class="premiacoes-wrap">
                           {% for card in premiacao_cards %}
-                            <div class="col-md-4">
-                              <div class="premiacao-card">
-                                <div class="premiacao-card-header">
-                                  <span class="premiacao-card-icon {% if card.tipo == 'BDG' %}badge{% elif card.tipo == 'TRF' %}trophy{% else %}medal{% endif %}">
-                                    <i class="bi bi-{{ card.icon }}"></i>
-                                  </span>
-                                  <div class="label-wrap">
-                                    <div class="type-name">{{ card.label }}</div>
-                                  </div>
+                            <div class="premiacao-card">
+                              <div class="premiacao-card-header">
+                                <span class="premiacao-card-icon {% if card.tipo == 'BDG' %}badge{% elif card.tipo == 'TRF' %}trophy{% else %}medal{% endif %}">
+                                  <i class="bi bi-{{ card.icon }}"></i>
+                                </span>
+                                <div class="label-wrap">
+                                  <div class="type-name">{{ card.label }}</div>
+                                  <div class="type-sub">{{ card.items|length }} conquista{{ card.items|length|pluralize }}</div>
                                 </div>
+                              </div>
 
-                                <div class="premiacao-card-body">
-                                  {% for item in card.items %}
-                                    <div class="premiacao-item">
-                                      <div class="premiacao-item-title">{{ item.gamificacao.nome }}</div>
-                                      <div class="premiacao-item-points">{{ item.gamificacao.pontos|default:"0" }} pontos</div>
-                                      <div class="premiacao-item-activity">
-                                        Atividade:
-                                        {% if item.gamificacao.activities.first %}
-                                          {{ item.gamificacao.activities.first.title }}
-                                        {% else %}
-                                          não disponível
-                                        {% endif %}
-                                      </div>
+                              <div class="premiacao-card-body">
+                                {% for item in card.items %}
+                                  <div class="premiacao-item">
+                                    <div class="premiacao-item-title">{{ item.gamificacao.titulo }}</div>
+                                    <div class="premiacao-item-points"><i class="bi bi-lightning-charge-fill"></i> {{ item.gamificacao.pontos|default:"0" }} pontos</div>
+                                    <div class="premiacao-item-activity">
+                                      <i class="bi bi-journal-check"></i>
+                                      {% if item.gamificacao.activities.first %}
+                                        {{ item.gamificacao.activities.first.title }}
+                                      {% else %}
+                                        Atividade não disponível
+                                      {% endif %}
                                     </div>
-                                  {% endfor %}
-                                </div>
+                                  </div>
+                                {% endfor %}
                               </div>
                             </div>
                           {% endfor %}
                         </div>
                       {% else %}
-                        <p class="text-muted mb-0">Nenhuma premiação conquistada ainda.</p>
+                        <div class="empty-state">
+                          <div class="empty-icon"><i class="bi bi-trophy"></i></div>
+                          <div class="fw-semibold text-body">Nenhuma premiação conquistada ainda</div>
+                          <div class="small">Participe de atividades para ganhar badges, troféus e medalhas.</div>
+                        </div>
                       {% endif %}
                     </div>
                   </div>
@@ -550,7 +607,9 @@
                 <div class="accordion-item">
                   <h2 class="accordion-header" id="headingTrilhas">
                     <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTrilhas" aria-expanded="false" aria-controls="collapseTrilhas">
+                      <span class="accordion-icon trail"><i class="bi bi-signpost-split-fill"></i></span>
                       Minhas Trilhas
+                      {% if trilhas %}<span class="accordion-count">{{ trilhas|length }}</span>{% endif %}
                     </button>
                   </h2>
                   <div id="collapseTrilhas" class="accordion-collapse collapse" aria-labelledby="headingTrilhas" data-bs-parent="#profileAccordion">
@@ -560,19 +619,24 @@
                           {% for trilha in trilhas %}
                             <div class="col-12 col-md-6">
                               <div class="trilha-card p-3 h-100">
-                                <div class="d-flex align-items-center justify-content-between">
-                                  <div>
-                                    <div class="text-muted small">Trilha</div>
+                                <div class="d-flex align-items-center gap-3">
+                                  <span class="trilha-icon"><i class="bi bi-signpost-2-fill"></i></span>
+                                  <div class="flex-grow-1">
+                                    <div class="text-muted small text-uppercase">Trilha</div>
                                     <div class="fw-bold">{{ trilha.nome }}</div>
                                   </div>
-                                  <span class="badge bg-success">+{{ trilha.pontos|default:"0" }}</span>
+                                  <span class="badge bg-success bg-opacity-10 text-success fw-semibold">+{{ trilha.pontos|default:"0" }}</span>
                                 </div>
                               </div>
                             </div>
                           {% endfor %}
                         </div>
                       {% else %}
-                        <p class="text-muted mb-0">Nenhuma trilha iniciada ainda.</p>
+                        <div class="empty-state">
+                          <div class="empty-icon"><i class="bi bi-signpost-split"></i></div>
+                          <div class="fw-semibold text-body">Nenhuma trilha iniciada ainda</div>
+                          <div class="small">Comece uma trilha para acompanhar seu progresso por aqui.</div>
+                        </div>
                       {% endif %}
                     </div>
                   </div>
