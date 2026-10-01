@@ -1,0 +1,67 @@
+{% extends "presente/private_base.html" %}
+{% load i18n %}
+
+{% block app_content %}
+<div class="container-fluid">
+  <div class="row">
+    <div class="col-12">
+
+      {% if missoes %}
+        {% for item in missoes %}
+        <div class="card card-primary mb-3">
+          <div class="card-header d-flex justify-content-between align-items-center flex-wrap gap-2">
+            <div class="card-title mb-0">
+              <i class="bi bi-flag-fill me-1"></i>
+              {{ item.missao.titulo }}
+            </div>
+            {% if item.concluida %}
+            <span class="badge bg-success fs-6">
+              <i class="bi bi-check-circle-fill me-1"></i>{% trans "Concluída" %}
+            </span>
+            {% else %}
+            <span class="badge bg-secondary fs-6">{{ item.progresso }} / {{ item.missao.meta }}</span>
+            {% endif %}
+          </div>
+          <div class="card-body">
+            {% if item.missao.descricao %}
+            <p class="text-muted mb-3">{{ item.missao.descricao }}</p>
+            {% endif %}
+
+            {% widthratio item.progresso item.missao.meta 100 as percentual %}
+            <div class="progress" style="height: 10px;">
+              <div
+                class="progress-bar {% if item.concluida %}bg-success{% else %}bg-primary{% endif %}"
+                role="progressbar"
+                style="width: {% if percentual > 100 %}100{% else %}{{ percentual }}{% endif %}%;"
+                aria-valuenow="{{ item.progresso }}"
+                aria-valuemin="0"
+                aria-valuemax="{{ item.missao.meta }}">
+              </div>
+            </div>
+
+            <div class="mt-3 d-flex align-items-center gap-2 text-muted" style="font-size: 0.9rem;">
+              <i class="bi bi-gift-fill"></i>
+              {% blocktrans with titulo=item.missao.gamificacao.titulo pontos=item.missao.gamificacao.pontos %}
+              Recompensa: {{ titulo }} (+{{ pontos }} pts)
+              {% endblocktrans %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+
+      {% else %}
+      <div class="card">
+        <div class="card-body text-center py-5">
+          <div class="text-muted mb-3" style="font-size: 3rem;">
+            <i class="bi bi-flag"></i>
+          </div>
+          <h5 class="mb-1">{% trans "Nenhuma missão disponível" %}</h5>
+          <p class="text-muted mb-0">{% trans "Ainda não há missões cadastradas." %}</p>
+        </div>
+      </div>
+      {% endif %}
+
+    </div>
+  </div>
+</div>
+{% endblock %}
