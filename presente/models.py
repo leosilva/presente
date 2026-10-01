@@ -5,6 +5,7 @@ from django.utils.translation import gettext_lazy as _
 from django.utils import timezone
 from taggit.managers import TaggableManager
 from django.db.models import Case, When, Value, IntegerField
+from django.urls import reverse
 
 User = get_user_model()
 
@@ -121,8 +122,6 @@ class Activity(models.Model):
         on_delete=models.CASCADE,
         related_name="activities",
         verbose_name=_("Evento"),
-        null=True,
-        blank=True,
     )
     area = models.ForeignKey(
         "Area",
@@ -681,6 +680,8 @@ class Brinde(models.Model):
 
     def __str__(self):
         return f"{self.nome} ({self.pontos_necessarios} pts/un)"
+    def get_absolute_url(self):
+        return reverse("presente:brinde_view", kwargs={"pk": self.pk})
 
 
 class Troca(models.Model):
@@ -814,3 +815,79 @@ class MissaoProgresso(models.Model):
 
     def __str__(self):
         return f"{self.user} - {self.missao} ({self.progresso}/{self.missao.meta})"
+
+class Conquista(models.Model):
+    class TipoRegra(models.TextChoices):
+        NUMERO_PRESENCAS = "NUMERO_PRESENCAS", _("Número de Presenças")
+        NUMERO_AREAS_DIFERENTES = "NUMERO_AREAS_DIFERENTES", _("Número de Áreas Diferentes")
+        NUMERO_ATIVIDADES = "NUMERO_ATIVIDADES", _("Número de Atividades")
+        PRIMEIRA_PRESENCA = "PRIMEIRA_PRESENCA", _("Primeira Presença")
+
+    nome = models.CharField(
+        _("Nome Conquista"),
+        max_length=155    
+    )
+    descricao = models.TextField(
+        _("Descrição"),
+        blank=True,
+        help_text=_("Descrição da Conquista")
+    )
+    icone = models.ImageField(
+        _("Ícone"),
+        upload_to="gamificacao/icones/",
+        blank=True,
+        null=True
+    )
+    tipo_regra = models.CharField(
+        _("Tipo da Regra"), 
+        max_length=155, 
+        choices=TipoRegra.choices,
+        default=TipoRegra.PRIMEIRA_PRESENCA,
+    )
+    valor_necessario = models.PositiveIntegerField(
+        _("Valor necessário"),
+        default=1,
+        help_text=_("Valor necessário para alcançar a conquista")
+    )    
+    pontos = models.PositiveIntegerField(
+        _("Pontos"),
+        default=0,
+        help_text=_("Quantidade de pontos da conquista")
+    )
+    status = models.BooleanField(
+        _("Ativo"),
+        default=True
+    )
+
+# Modelo que representa usuário, conquista e data em que foi desbloqueada
+class ConquistaUsuario(models.Model):
+    user = models.ForeignKey(
+        User,
+        on_delete=models.CASCADE,
+        verbose_name=_("Usuário")
+    )
+
+    conquista = models.ForeignKey(
+        Conquista,
+        on_delete=models.CASCADE,
+        verbose_name=_("Conquista do Usuário")
+    )
+
+    evento = models.ForeignKey(
+        Evento,
+        on_delete=models.CASCADE,
+        verbose_name=_("Evento da conquista")
+    )
+
+    data_desbloqueio = models.DateField(
+        _("Data de desbloqueio da conquista"),
+        auto_now_add=True,
+    )
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=["user", "conquista", "evento"],
+                name="unique_usuario_conquista_evento"
+            )
+        ]

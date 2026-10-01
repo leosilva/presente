@@ -19,6 +19,7 @@ from .models import (
     ItemRecompensa,
     Missao,
     MissaoProgresso,
+    Conquista
 )
 
 
@@ -182,3 +183,7 @@ class MissaoProgressoAdmin(admin.ModelAdmin):
     list_filter = ["missao", "concluida_em"]
     search_fields = ["user__username", "missao__titulo"]
     readonly_fields = ["user", "missao", "progresso", "concluida_em"]
+
+@admin.register(Conquista)
+class ConquistaAdmin(admin.ModelAdmin):
+    list_display = ["nome", "descricao", "icone", "pontos", "status"]

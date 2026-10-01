@@ -14,6 +14,11 @@ urlpatterns = [
     path(
         "activity/<int:pk>/", views.ActivityDetailView.as_view(), name="activity_view"
     ),
+    path("admin/admin-brindes/", views.AdminBrindesView.as_view(), name="admin_brindes"),
+    path("admin/brindes/add/", views.BrindeCreateView.as_view(), name="brinde_add"),
+    path("admin/brindes/<int:pk>/", views.BrindeDetailView.as_view(), name="brinde_view"),
+    path("admin/brindes/<int:pk>/update/", views.BrindeUpdateView.as_view(), name="brinde_change"),
+    path("admin/brindes/<int:pk>/delete/", views.BrindeDeleteView.as_view(), name="brinde_delete"),
     path("minhas-pontuacoes/", views.minhas_pontuacoes, name="minhas_pontuacoes"),
  
     path("ranking/", views.RankingListView.as_view(), name="ranking"),

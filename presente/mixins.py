@@ -14,3 +14,8 @@ class ActivityOwnerMixin:
             raise Http404("Você não tem permissão para acessar esta atividade")
 
         return activity
+class BrindeAdminMixin:
+    def get_allowed_actions(self):
+        allowed_actions = super().get_allowed_actions()
+        allowed_actions["list"] = "presente:admin_brindes"
+        return allowed_actions

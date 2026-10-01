@@ -1,7 +1,7 @@
 from multiprocessing import context
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
-from django.db.models import Sum
+from django.db.models import Sum,ProtectedError
 from django.views.generic.base import TemplateView,View
 from django.views.generic import ListView
 from django.views.generic.edit import FormView
@@ -46,6 +46,7 @@ from .models import (
     Troca,
     Missao,
     MissaoProgresso
+    ItemRecompensa,
     )
 from .services import PointService,TrocaService
 from .tables import (
@@ -54,10 +55,18 @@ from .tables import (
     ActivityAttendanceTable,
     NetworkTable,
     EventoTable,
+    BrindeTable,
 )
-from .forms import ActivityForm, AttendancePrintConfigForm, NetworkForm, EventoForm,AttendanceDeleteForm
-from .filters import ActivityFilter, AttendanceFilter, ActivityAttendanceFilter
-from .mixins import ActivityOwnerMixin
+from .forms import (
+    ActivityForm,
+    AttendancePrintConfigForm,
+    NetworkForm,
+    EventoForm,
+    AttendanceDeleteForm,
+    BrindeForm,
+)
+from .filters import ActivityFilter, AttendanceFilter, ActivityAttendanceFilter,BrindeFilter
+from .mixins import ActivityOwnerMixin,BrindeAdminMixin
 from .utils import (
     get_client_ip,
     encode_activity_id,
@@ -184,6 +193,84 @@ class ActivityDeleteView(CoreDeleteView):
             return Activity.objects.all()
         return Activity.objects.filter(owners=self.request.user)
 
+# Brinde CRUD Views (admin)
+
+class AdminBrindesView(BrindeAdminMixin,SuperuserRequiredMixin, CoreFilterView):
+    page_title = _("Recompensas")
+    model = Brinde
+    table_class = BrindeTable
+    filterset_class = BrindeFilter
+
+    def get_queryset(self):
+        return Brinde.objects.select_related("evento").order_by("-criado_em")
+
+
+class BrindeCreateView(BrindeAdminMixin,SuperuserRequiredMixin, CoreCreateView):
+    model = Brinde
+    page_title = _("Recompensas")
+    form_class = BrindeForm
+
+    def get_success_url(self):
+        return reverse_lazy("presente:admin_brindes")
+class BrindeDetailView(BrindeAdminMixin,SuperuserRequiredMixin, CoreDetailView):
+    model = Brinde
+    page_title = _("Recompensas")
+    template_name = "presente/brinde_detail.html"
+
+    def get_queryset(self):
+        return Brinde.objects.select_related("evento").all()
+
+    def get_allowed_actions(self):
+        allowed_actions = super().get_allowed_actions()
+        allowed_actions["list"] = "presente:admin_brindes"
+        return allowed_actions
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        itens = (
+            ItemRecompensa.objects.filter(brinde=self.object)
+            .select_related("troca__usuario")
+            .order_by("-troca__data")
+        )
+        context["itens_trocados"] = itens
+        context["total_trocado"] = sum(item.quantidade for item in itens)
+        return context
+
+
+class BrindeUpdateView(BrindeAdminMixin,SuperuserRequiredMixin, CoreUpdateView):
+    model = Brinde
+    page_title = _("Recompensas")
+    form_class = BrindeForm
+
+    def get_success_url(self):
+        return reverse_lazy("presente:brinde_view", kwargs={"pk": self.kwargs["pk"]})
+
+    def get_queryset(self):
+        return Brinde.objects.all()
+
+
+class BrindeDeleteView(BrindeAdminMixin,SuperuserRequiredMixin, CoreDeleteView):
+    model = Brinde
+
+    def get_queryset(self):
+        return Brinde.objects.all()
+
+    def get_success_url(self):
+        return reverse_lazy("presente:admin_brindes")
+
+    def form_valid(self, form):
+        try:
+            return super().form_valid(form)
+        except ProtectedError:
+            messages.error(
+                self.request,
+                _(
+                    f"Não é possível excluir '{self.object.nome}' pois já foi trocado "
+                    f"por algum usuário. Desative-o em vez de excluir, para preservar "
+                    f"o histórico de trocas."
+                ),
+            )
+            return redirect("presente:brinde_view", pk=self.object.pk)
 
 # Public views for attendance
 
@@ -846,35 +933,36 @@ def carrinho_para_itens(carrinho):
  
  
 # ──────────────────────────────────────────────────────────────
-# Loja — listagem de brindes disponíveis + carrinho lateral
+# Loja — listagem de brindes disponíveis (todos os eventos) + carrinho lateral
 # ──────────────────────────────────────────────────────────────
- 
+
 class LojaView(LoginRequiredMixin, TemplateView):
     template_name = "presente/loja.html"
- 
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
- 
-        # Filtra pelo evento ativo mais recente que tenha brindes
-        evento = (
+
+        # Todos os eventos que têm ao menos um brinde ativo, mais recentes primeiro
+        eventos = (
             Evento.objects.filter(brindes__ativo=True)
+            .distinct()
             .order_by("-data_inicio")
-            .first()
         )
- 
-        brindes = []
-        if evento:
+
+        eventos_com_brindes = []
+        for evento in eventos:
             brindes = TrocaService.get_brindes_disponiveis(evento)
- 
+            if brindes:
+                eventos_com_brindes.append({"evento": evento, "brindes": brindes})
+
         carrinho = get_carrinho(self.request)
         itens_carrinho = carrinho_para_itens(carrinho)
         total_carrinho = sum(
             item["brinde"].pontos_necessarios * item["quantidade"]
             for item in itens_carrinho
         )
- 
-        context["evento"] = evento
-        context["brindes"] = brindes
+
+        context["eventos_com_brindes"] = eventos_com_brindes
         context["itens_carrinho"] = itens_carrinho
         context["total_carrinho"] = total_carrinho
         context["total_pontos"] = PointService.calculate_user_point(self.request.user)
