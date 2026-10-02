@@ -45,7 +45,7 @@ from .models import (
     Brinde,
     Troca,
     Missao,
-    MissaoProgresso
+    MissaoProgresso,
     ItemRecompensa,
     )
 from .services import PointService,TrocaService
