@@ -137,3 +137,9 @@ GitHub.sublime-settings
 !.vscode/extensions.json 
 .history
 .DS_Store
+
+#docs
+docs/plano-teste-sala-de-aula.md 
+docs/preview_trilhas_contagens.sql 
+docs/preview_trilhas_limpar_evento_antigo.sql 
+docs/seed_teste_sala_preview_trilhas.sql

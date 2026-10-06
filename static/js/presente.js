@@ -15,8 +15,8 @@ function setupOverlayScrollbars() {
 }
 
 function setupTomSelect() {
-  // Multi-select for users
-  document.querySelectorAll('[data-tom-select="users"]').forEach(function(el) {
+  // Multi-select for users / generic multi-select fields (ex: campus)
+  document.querySelectorAll('[data-tom-select="users"], [data-tom-select="multi"]').forEach(function(el) {
     if (!el.tomselect) {
       new TomSelect(el, {
         plugins: ['remove_button'],

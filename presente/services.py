@@ -20,6 +20,8 @@ from .models import (
     MissaoProgresso,
     Conquista,
     ConquistaUsuario,
+    InscricaoTrilha,
+    TipoGamificacao,
 )
 
 
@@ -30,8 +32,7 @@ class PointService:
     # ──────────────────────────────────────────────────────────────
 
     @classmethod
-    @transaction.atomic
-    def debit_gamificacao(cls, user, gamificacao, motivo=""):
+    def debit_gamificacao(cls, user, gamificacao, motivo="", evento=None):
         deleted, _ = UsuarioGamificacao.objects.filter(
             user=user, gamificacao=gamificacao
         ).delete()
@@ -40,7 +41,9 @@ class PointService:
             PointHistory.objects.create(
                 user=user,
                 gamificacao=gamificacao,
+                evento=evento,
                 tipo=PointHistory.TipoMovimento.DEBITO,
+                categoria=PointHistory.Categoria.ESTORNO,
                 pontos=-gamificacao.pontos,
                 motivo=motivo or f"Estorno automático — {gamificacao.titulo}",
             )
@@ -49,8 +52,7 @@ class PointService:
         return deleted > 0
 
     @classmethod
-    @transaction.atomic
-    def credit_gamificacao(cls, user, gamificacao, motivo=""):
+    def credit_gamificacao(cls, user, gamificacao, motivo="", evento=None):
         obj, created = UsuarioGamificacao.objects.get_or_create(
             user=user,
             gamificacao=gamificacao,
@@ -60,7 +62,9 @@ class PointService:
             PointHistory.objects.create(
                 user=user,
                 gamificacao=gamificacao,
+                evento=evento,
                 tipo=PointHistory.TipoMovimento.CREDITO,
+                categoria=PointHistory.Categoria.GANHO,
                 pontos=gamificacao.pontos,
                 motivo=motivo or f"Concessão automática — {gamificacao.titulo}",
             )
@@ -80,11 +84,21 @@ class PointService:
 
     @classmethod
     def calculate_user_point(cls, user):
-        # PointHistory é a fonte única de saldo — soma todos os créditos
-        # (positivos) e débitos (negativos) registrados para o usuário.
+        """Saldo disponível para a loja: ganhos - estornos - trocas."""
         total = PointHistory.objects.filter(user=user).aggregate(
             total=Sum("pontos")
         ).get("total") or 0
+        return total
+
+    @classmethod
+    def calculate_user_xp(cls, user):
+        """Pontos ganhos (ranking e nível): trocas na loja não descontam."""
+        total = (
+            PointHistory.objects.filter(user=user)
+            .exclude(categoria=PointHistory.Categoria.TROCA)
+            .aggregate(total=Sum("pontos"))
+            .get("total") or 0
+        )
         return total
 
     # ──────────────────────────────────────────────────────────────
@@ -113,31 +127,36 @@ class PointService:
         if not attendance.activity:
             return
 
+        evento = attendance.activity.evento
+
         if attendance.activity.gamificacao:
             gamificacao = attendance.activity.gamificacao
             motivo = f"Presença registrada em: {attendance.activity.title}"
-            cls.credit_gamificacao(user, gamificacao, motivo=motivo)
+            cls.credit_gamificacao(user, gamificacao, motivo=motivo, evento=evento)
 
         for conquista in conquistas_atingidas:
             with transaction.atomic():
-                obj, created = ConquistaUsuario.objects.get_or_create(user=user, conquista=conquista, evento=attendance.activity.evento)
+                obj, created = ConquistaUsuario.objects.get_or_create(user=user, conquista=conquista, evento=evento)
                 if created:
                     PointHistory.objects.create(
                         user=user,
+                        evento=evento,
                         tipo=PointHistory.TipoMovimento.CREDITO,
+                        categoria=PointHistory.Categoria.GANHO,
                         pontos=conquista.pontos,
-                        motivo=f"Crédito por desbloqueio de conquista",
+                        motivo=f"Conquista desbloqueada: {conquista.nome}",
                     )
                     PointService._update_user_level(user)
 
         if attendance.activity.trilha:
-            cls._check_trilha_bonus(user, attendance.activity.trilha)
+            cls._check_trilha_bonus(user, attendance.activity.trilha, evento=evento)
 
         cls._check_diversidade_bonus(user, attendance.checked_in_at.date())
         cls._check_missoes(user)
         cls._check_diversidade_bonus(
-            user, 
-            attendance.checked_in_at.date()
+            user,
+            attendance.checked_in_at.date(),
+            evento=evento,
         )
 
     @classmethod
@@ -159,57 +178,35 @@ class PointService:
         )
 
         if activity.gamificacao:
-            cls.debit_gamificacao(user, activity.gamificacao, motivo=base_motivo)
+            cls.debit_gamificacao(user, activity.gamificacao, motivo=base_motivo, evento=activity.evento)
 
         if activity.trilha:
-            cls._check_trilha_bonus_reversal(user, activity.trilha, base_motivo)
+            cls._check_trilha_bonus_reversal(user, activity.trilha, base_motivo, evento=activity.evento)
 
         data_checkin = attendance.checked_in_at.date()
-        cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo)
-        cls._check_missoes_reversal(user, base_motivo)
+        cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo, evento=activity.evento)
 
     @classmethod
-    @transaction.atomic #faz o Django tratar tudo dentro da função como uma transação de banco única: ou todas as operações de escrita são commitadas, ou, se qualquer exceção for levantada em qualquer ponto, todas são revertidas (rollback) — nenhuma fica parcialmente aplicada.
-    def _on_gamificacao_updated(cls, gamificacao, pontos_anterior):
-        if pontos_anterior == gamificacao.pontos:
-            return
-
-        tem_atividade_ativa = Activity.objects.filter(
-            gamificacao=gamificacao,
-            start_time__lte=timezone.now(),
-            end_time__gte=timezone.now(),
-        ).exists()
-        if not tem_atividade_ativa:
-            return
-
-        usuarios = UsuarioGamificacao.objects.filter(
-            gamificacao=gamificacao
-        ).select_related("user")
-
-        for ug in usuarios:
-            PointHistory.objects.create(
-                user=ug.user,
-                gamificacao=gamificacao,
-                tipo=PointHistory.TipoMovimento.DEBITO,
-                pontos=-pontos_anterior,
-                motivo=f"Ajuste de pontuação — {gamificacao.titulo} (valor anterior removido)",
-            )
-            PointHistory.objects.create(
-                user=ug.user,
-                gamificacao=gamificacao,
-                tipo=PointHistory.TipoMovimento.CREDITO,
-                pontos=gamificacao.pontos,
-                motivo=f"Ajuste de pontuação — {gamificacao.titulo} (novo valor aplicado)",
-            )
-            cls._update_user_level(ug.user)
+    def _on_gamificacao_updated(cls, gamificacao):
+        atividades = Activity.objects.filter(gamificacao=gamificacao, start_time__lte=timezone.now(), end_time__gte=timezone.now(),)
+        for atividade in atividades:
+            usuarios = UsuarioGamificacao.objects.filter(gamificacao=gamificacao)
+            for ug in usuarios:
+                cls.debit_gamificacao(ug.user, gamificacao, evento=atividade.evento)
+                cls.credit_gamificacao(ug.user, gamificacao, evento=atividade.evento)
 
     # ──────────────────────────────────────────────────────────────
     # Bônus de trilha
     # ──────────────────────────────────────────────────────────────
 
     @classmethod
-    def _check_trilha_bonus(cls, user, trilha):
+    def _check_trilha_bonus(cls, user, trilha, evento=None):
         if not trilha.gamificacao_bonus or not trilha.minimo_atividades:
+            return
+
+        if trilha.requer_inscricao and not InscricaoTrilha.objects.filter(
+            user=user, trilha=trilha
+        ).exists():
             return
 
         ja_tem_bonus = UsuarioGamificacao.objects.filter(
@@ -224,10 +221,10 @@ class PointService:
 
         if presencas_na_trilha >= trilha.minimo_atividades:
             motivo = f"Bônus de trilha atingido: {trilha.name}"
-            cls.credit_gamificacao(user, trilha.gamificacao_bonus, motivo=motivo)
+            cls.credit_gamificacao(user, trilha.gamificacao_bonus, motivo=motivo, evento=evento)
 
     @classmethod
-    def _check_trilha_bonus_reversal(cls, user, trilha, base_motivo=""):
+    def _check_trilha_bonus_reversal(cls, user, trilha, base_motivo="", evento=None):
         """
         Remove o bônus de trilha se, após a remoção da presença,
         o usuário ficar abaixo do mínimo exigido.
@@ -244,14 +241,14 @@ class PointService:
                 f"Estorno de bônus de trilha '{trilha.name}' — "
                 f"presenças insuficientes após remoção. {base_motivo}"
             )
-            cls.debit_gamificacao(user, trilha.gamificacao_bonus, motivo=motivo)
+            cls.debit_gamificacao(user, trilha.gamificacao_bonus, motivo=motivo, evento=evento)
 
     # ──────────────────────────────────────────────────────────────
     # Bônus de diversidade
     # ──────────────────────────────────────────────────────────────
 
     @classmethod
-    def _check_diversidade_bonus(cls, user, data):
+    def _check_diversidade_bonus(cls, user, data, evento=None):
         areas_no_dia = (
             Attendance.objects.filter(
                 user=user,
@@ -279,10 +276,10 @@ class PointService:
                     f"Bônus de diversidade: {marco.areas_necessarias} "
                     f"áreas no dia {data}"
                 )
-                cls.credit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo)
+                cls.credit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo, evento=evento)
 
     @classmethod
-    def _check_diversidade_bonus_reversal(cls, user, data, base_motivo=""):
+    def _check_diversidade_bonus_reversal(cls, user, data, base_motivo="", evento=None):
         """
         Remove bônus de diversidade cujo requisito de áreas não é mais
         satisfeito após a remoção da presença.
@@ -307,20 +304,14 @@ class PointService:
                 f"Estorno de bônus de diversidade — "
                 f"áreas insuficientes no dia {data}. {base_motivo}"
             )
-            cls.debit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo)
-    @classmethod
-    def _check_missoes(cls, user):
-        """
-        Atualiza o progresso de missões de FREQUÊNCIA ativas para o usuário,
-        concedendo a gamificação vinculada quando a meta é atingida.
-        """
-        total_presencas = Attendance.objects.filter(user=user).count()
+            cls.debit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo, evento=evento)
 
         missoes_ativas = Missao.objects.filter(
             ativa=True, tipo=Missao.Tipo.FREQUENCIA
         ).select_related("gamificacao")
 
         for missao in missoes_ativas:
+            total_presencas = Attendance.objects.filter(user=user).count()
             progresso_obj, _ = MissaoProgresso.objects.get_or_create(
                 user=user, missao=missao
             )
@@ -370,7 +361,7 @@ class PointService:
 
     @classmethod
     def _update_user_level(cls, user):
-        total_pontos = cls.calculate_user_point(user)
+        total_pontos = cls.calculate_user_xp(user)
         nivel = (
             Nivel.objects.filter(pontos_minimos__lte=total_pontos)
             .order_by("-pontos_minimos")
@@ -537,15 +528,16 @@ class TrocaService:
         Registra o débito total da troca no PointHistory e recalcula o nível.
         gamificacao=None pois o débito origina de uma troca, não de uma gamificação.
         """
-        nomes = ", ".join(
-            f"{item.quantidade}x {item.brinde.nome}"
-            for item in troca.itens.select_related("brinde").all()
-        )
+        itens = list(troca.itens.select_related("brinde").all())
+        nomes = ", ".join(f"{item.quantidade}x {item.brinde.nome}" for item in itens)
+        evento = itens[0].brinde.evento if itens else None
 
         PointHistory.objects.create(
             user=user,
             gamificacao=None,
+            evento=evento,
             tipo=PointHistory.TipoMovimento.DEBITO,
+            categoria=PointHistory.Categoria.TROCA,
             pontos=-troca.pontos_gastos,
             motivo=f"Troca #{troca.pk}: {nomes}",
         )
@@ -604,39 +596,221 @@ class TrocaService:
 
         return handler(**kwargs)
 
+class TrilhaService:
+    BONUS_POR_ATIVIDADE = 10
+
+    @classmethod
+    def bonus_sugerido(cls, minimo_atividades):
+        return max(1, minimo_atividades or 1) * cls.BONUS_POR_ATIVIDADE
+
+    @classmethod
+    @transaction.atomic
+    def definir_bonus(cls, trilha, pontos, tipo=TipoGamificacao.Tipo.TROFEU):
+        """Garante que a trilha tenha recompensa; quem já concluiu recebe na hora."""
+        tipo_obj, _criado = TipoGamificacao.objects.get_or_create(trilha=trilha, tipo=tipo)
+        titulo = f"Trilha concluída: {trilha.name}"[:150]
+        bonus = trilha.gamificacao_bonus
+
+        if bonus is None:
+            bonus = Gamificacao.objects.create(titulo=titulo, tipo=tipo_obj, trilha=trilha, pontos=pontos)
+            trilha.gamificacao_bonus = bonus
+            trilha.save(update_fields=["gamificacao_bonus"])
+            usuarios = (
+                Attendance.objects.filter(activity__trilha=trilha)
+                .values_list("user", flat=True)
+                .distinct()
+            )
+            from django.contrib.auth import get_user_model
+            for user in get_user_model().objects.filter(pk__in=usuarios):
+                PointService._check_trilha_bonus(user, trilha, evento=trilha.evento)
+            return bonus
+
+        # Sem disparar o signal de recálculo: ele só vale para gamificação de atividade.
+        Gamificacao.objects.filter(pk=bonus.pk).update(titulo=titulo, tipo=tipo_obj, pontos=pontos)
+        return bonus
+
+    @classmethod
+    def abrir_bau(cls, user, trilha):
+        registro = (
+            UsuarioGamificacao.objects.filter(user=user, gamificacao_id=trilha.gamificacao_bonus_id)
+            .select_related("gamificacao__tipo")
+            .first()
+            if trilha.gamificacao_bonus_id
+            else None
+        )
+        if registro is None:
+            raise ValidationError(_("Complete a trilha para abrir o baú."))
+        if registro.bau_aberto_em is None:
+            registro.bau_aberto_em = timezone.now()
+            registro.save(update_fields=["bau_aberto_em"])
+        return registro
+
+    @classmethod
+    def concluida(cls, user, trilha):
+        return bool(trilha.gamificacao_bonus_id) and UsuarioGamificacao.objects.filter(
+            user=user, gamificacao_id=trilha.gamificacao_bonus_id
+        ).exists()
+
+    @classmethod
+    @transaction.atomic
+    def inscrever(cls, user, trilha):
+        if not trilha.requer_inscricao:
+            raise ValidationError(_("Esta trilha é automática e não precisa de inscrição."))
+        inscricao, criada = InscricaoTrilha.objects.get_or_create(user=user, trilha=trilha)
+        if criada:
+            # Presenças anteriores à inscrição também contam.
+            PointService._check_trilha_bonus(user, trilha, evento=trilha.evento)
+        return criada
+
+    @classmethod
+    def sair(cls, user, trilha):
+        if cls.concluida(user, trilha):
+            raise ValidationError(_("Você já concluiu esta trilha e não pode sair dela."))
+        InscricaoTrilha.objects.filter(user=user, trilha=trilha).delete()
+
+    @classmethod
+    def caminho(cls, user, trilha):
+        """Progresso da trilha com cada atividade como uma etapa do caminho."""
+        atividades = list(
+            trilha.activities.select_related("area", "gamificacao").order_by("start_time")
+        )
+        presentes = set(
+            Attendance.objects.filter(user=user, activity__trilha=trilha)
+            .values_list("activity_id", flat=True)
+        )
+        necessario = trilha.minimo_atividades or 1
+        feitas = len(presentes)
+
+        etapas = []
+        proxima_marcada = False
+        for atividade in atividades:
+            if atividade.pk in presentes:
+                estado = "done"
+            elif atividade.status == "expired":
+                estado = "missed"
+            elif not proxima_marcada:
+                estado = "current"
+                proxima_marcada = True
+            else:
+                estado = "locked"
+            etapas.append({"atividade": atividade, "estado": estado})
+
+        registro = (
+            UsuarioGamificacao.objects.filter(user=user, gamificacao_id=trilha.gamificacao_bonus_id).first()
+            if trilha.gamificacao_bonus_id
+            else None
+        )
+        if registro is None:
+            bau = "fechado"
+        elif registro.bau_aberto_em is None:
+            bau = "pronto"
+        else:
+            bau = "aberto"
+
+        return {
+            "trilha": trilha,
+            "etapas": etapas,
+            "feitas": min(feitas, necessario),
+            "necessario": necessario,
+            "percentual": round(min(feitas, necessario) * 100 / necessario),
+            "completa": registro is not None or (
+                not trilha.gamificacao_bonus_id and feitas >= necessario
+            ),
+            "bau": bau,
+        }
+
+
+class NivelService:
+    """Fonte única do cálculo de nível/progresso exibido nas telas."""
+
+    @classmethod
+    def progresso(cls, user, pontos=None):
+        if pontos is None:
+            pontos = PointService.calculate_user_xp(user)
+
+        niveis = list(Nivel.objects.order_by("pontos_minimos"))
+        nivel_atual = None
+        proximo_nivel = None
+        for nivel in niveis:
+            if nivel.pontos_minimos <= pontos:
+                nivel_atual = nivel
+            else:
+                proximo_nivel = nivel
+                break
+
+        base = nivel_atual.pontos_minimos if nivel_atual else 0
+        if proximo_nivel:
+            faixa = proximo_nivel.pontos_minimos - base
+            percentual = max(0, min(100, (pontos - base) * 100 / faixa)) if faixa else 100
+            pontos_faltando = proximo_nivel.pontos_minimos - pontos
+        else:
+            percentual = 100 if nivel_atual else 0
+            pontos_faltando = 0
+
+        return {
+            "pontos": pontos,
+            "nivel_atual": nivel_atual,
+            "proximo_nivel": proximo_nivel,
+            "percentual": round(percentual),
+            "pontos_faltando": pontos_faltando,
+            "pontos_no_nivel": max(0, pontos - base),
+            "pontos_faixa": (proximo_nivel.pontos_minimos - base) if proximo_nivel else 0,
+            "numero_nivel": niveis.index(nivel_atual) + 1 if nivel_atual else 0,
+        }
+
+
 class ConquistaService:
     @classmethod
-    def usuario_atingiu_conquista(cls, user, conquista):
-        if conquista.tipo_regra == Conquista.TipoRegra.PRIMEIRA_PRESENCA:
-            return Attendance.objects.filter(user=user).exists()
+    def valor_atual(cls, user, conquista):
+        presencas = Attendance.objects.filter(user=user)
+        regra = conquista.tipo_regra
 
-        if conquista.tipo_regra == Conquista.TipoRegra.NUMERO_PRESENCAS:
-            total = Attendance.objects.filter(user=user).count()
-            return total >= conquista.valor_necessario
-
-        if conquista.tipo_regra == Conquista.TipoRegra.NUMERO_ATIVIDADES:
+        if regra == Conquista.TipoRegra.PRIMEIRA_PRESENCA:
+            return 1 if presencas.exists() else 0
+        if regra == Conquista.TipoRegra.NUMERO_PRESENCAS:
+            return presencas.count()
+        if regra == Conquista.TipoRegra.NUMERO_ATIVIDADES:
+            return presencas.values("activity_id").distinct().count()
+        if regra == Conquista.TipoRegra.NUMERO_AREAS_DIFERENTES:
             return (
-                Attendance.objects
-                .filter(user=user)
-                .values("activity_id")
-                .distinct()
-                .count() >= conquista.valor_necessario
-            )
-
-        if conquista.tipo_regra == Conquista.TipoRegra.NUMERO_AREAS_DIFERENTES:
-            total = (
-                Attendance.objects
-                .filter(
-                    user=user, 
-                    activity__area__isnull=False
-                )
+                presencas.filter(activity__area__isnull=False)
                 .values("activity__area")
                 .distinct()
-                .count() >= conquista.valor_necessario
+                .count()
             )
-            return total >= conquista.valor_necessario
-        
-        return False
+        return 0
+
+    @classmethod
+    def valor_necessario(cls, conquista):
+        if conquista.tipo_regra == Conquista.TipoRegra.PRIMEIRA_PRESENCA:
+            return 1
+        return conquista.valor_necessario
+
+    @classmethod
+    def usuario_atingiu_conquista(cls, user, conquista):
+        return cls.valor_atual(user, conquista) >= cls.valor_necessario(conquista)
+
+    @classmethod
+    def conquistas_com_progresso(cls, user):
+        desbloqueadas = {
+            cu.conquista_id: cu
+            for cu in ConquistaUsuario.objects.filter(user=user).order_by("data_desbloqueio")
+        }
+        itens = []
+        for conquista in Conquista.objects.filter(status=True).order_by("valor_necessario", "nome"):
+            necessario = cls.valor_necessario(conquista)
+            atual = min(cls.valor_atual(user, conquista), necessario)
+            registro = desbloqueadas.get(conquista.pk)
+            itens.append({
+                "conquista": conquista,
+                "desbloqueada": registro is not None,
+                "data": registro.data_desbloqueio if registro else None,
+                "atual": atual,
+                "necessario": necessario,
+                "percentual": round(atual * 100 / necessario) if necessario else 100,
+            })
+        itens.sort(key=lambda i: (not i["desbloqueada"], -i["percentual"]))
+        return itens
 
     @classmethod
     def avaliar_conquistas_usuario(cls, user):

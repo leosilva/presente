@@ -1,0 +1,104 @@
+{% extends "presente/private_base.html" %}
+
+{% block crumb %}
+{{ block.super }}
+<li class="breadcrumb-item active" aria-current="page">Conquistas</li>
+{% endblock %}
+
+{% block app_content %}
+<div class="container-fluid">
+
+  <!-- Nível -->
+  <div class="card mb-4">
+    <div class="card-body">
+      <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+        <div>
+          <div class="text-muted text-uppercase small fw-bold">Seu nível</div>
+          <div class="fs-3 fw-bold">{{ nivel_atual.nome|default:"Iniciante" }}</div>
+        </div>
+        <div class="gm-statbar">
+          <span class="gm-stat gm-stat--points"><i class="bi bi-star-fill"></i> {{ my_points }}</span>
+          <span class="gm-stat gm-stat--rank"><i class="bi bi-award-fill"></i> {{ conquistas_desbloqueadas }}/{{ conquistas|length }}</span>
+        </div>
+      </div>
+      {% include "presente/includes/nivel_progresso.html" %}
+    </div>
+  </div>
+
+  <a href="{% url 'presente:trilhas' %}" class="gm-unit-header text-decoration-none mb-4">
+    <div>
+      <div class="gm-kicker">Trilhas</div>
+      <h5>Escolha trilhas dos eventos e acompanhe seu caminho</h5>
+    </div>
+    <i class="bi bi-signpost-split fs-2"></i>
+  </a>
+
+  <!-- Conquistas -->
+  <h5 class="fw-bold mb-3"><i class="bi bi-award"></i> Conquistas</h5>
+  {% if conquistas %}
+  <div class="achievement-grid mb-5">
+    {% for c in conquistas %}
+    <div class="achievement {% if not c.desbloqueada %}achievement--locked{% endif %}">
+      {% if c.conquista.pontos %}<span class="achievement-points">+{{ c.conquista.pontos }}</span>{% endif %}
+      <span class="achievement-icon">
+        {% if c.conquista.icone %}
+          <img src="{{ c.conquista.icone.url }}" alt="">
+        {% elif c.desbloqueada %}
+          <i class="bi bi-award-fill"></i>
+        {% else %}
+          <i class="bi bi-lock-fill"></i>
+        {% endif %}
+      </span>
+      <div class="achievement-title">{{ c.conquista.nome }}</div>
+      {% if c.conquista.descricao %}
+      <div class="achievement-desc">{{ c.conquista.descricao }}</div>
+      {% endif %}
+      {% if c.desbloqueada %}
+        <small class="text-success fw-semibold mt-auto"><i class="bi bi-check-circle-fill"></i> Desbloqueada em {{ c.data|date:"d/m/Y" }}</small>
+      {% elif c.percentual >= 100 %}
+        <small class="text-primary fw-semibold mt-auto"><i class="bi bi-hourglass-split"></i> Será liberada no seu próximo check-in</small>
+      {% else %}
+        <div class="mt-auto">
+          <div class="progress" style="height: 6px;" role="progressbar" aria-valuenow="{{ c.percentual }}" aria-valuemin="0" aria-valuemax="100">
+            <div class="progress-bar bg-warning" style="width: {{ c.percentual }}%;"></div>
+          </div>
+          <div class="gm-progress-label"><span>{{ c.atual }} / {{ c.necessario }}</span></div>
+        </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <p class="text-muted mb-5">Nenhuma conquista cadastrada ainda.</p>
+  {% endif %}
+
+  <!-- Premiações -->
+  {% if premiacoes %}
+  <h5 class="fw-bold mb-3"><i class="bi bi-gem"></i> Premiações recebidas</h5>
+  {% for grupo in premiacoes %}
+  <div class="mb-4">
+    <div class="text-muted text-uppercase small fw-bold mb-2">
+      <i class="bi bi-{{ grupo.icon }}"></i> {{ grupo.label }} ({{ grupo.itens|length }})
+    </div>
+    <div class="achievement-grid">
+      {% for item in grupo.itens %}
+      <div class="achievement">
+        <span class="achievement-points">+{{ item.gamificacao.pontos }}</span>
+        <span class="achievement-icon">
+          {% if item.gamificacao.tipo.icone %}
+            <img src="{{ item.gamificacao.tipo.icone.url }}" alt="">
+          {% else %}
+            <i class="bi bi-{{ grupo.icon }}"></i>
+          {% endif %}
+        </span>
+        <div class="achievement-title">{{ item.gamificacao.titulo }}</div>
+        <small class="text-muted mt-auto">{{ item.data_concedida|date:"d/m/Y" }}</small>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endfor %}
+  {% endif %}
+
+</div>
+{% endblock %}
