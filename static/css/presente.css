@@ -906,3 +906,152 @@ button.gm-node:active { transform: translateY(4px); box-shadow: none; }
   .gm-kpi__icon { width: 38px; height: 38px; font-size: 1.15rem; border-radius: 12px; }
   .gm-kpi__value { font-size: 1.15rem; }
 }
+
+/* ── Tema arredondado global (estilo Duolingo) ───────────────────
+   Padroniza os componentes padrão do Bootstrap/AdminLTE com o mesmo
+   raio das telas de gamificação. Fica no fim do arquivo de propósito. */
+:root,
+[data-bs-theme="light"],
+[data-bs-theme="dark"] {
+  --bs-border-radius: 0.75rem;
+  --bs-border-radius-sm: 0.55rem;
+  --bs-border-radius-lg: 1rem;
+  --bs-border-radius-xl: 1.25rem;
+  --bs-border-radius-xxl: 1.5rem;
+  --presente-radius: 16px;
+}
+
+/* Cards */
+.card {
+  --bs-card-border-radius: var(--presente-radius);
+  --bs-card-inner-border-radius: calc(var(--presente-radius) - 1px);
+  border-radius: var(--presente-radius);
+  border-width: 2px;
+  border-color: #e5e5e5;
+  box-shadow: none;
+}
+.card-header:first-child { border-radius: calc(var(--presente-radius) - 2px) calc(var(--presente-radius) - 2px) 0 0; }
+.card-footer:last-child { border-radius: 0 0 calc(var(--presente-radius) - 2px) calc(var(--presente-radius) - 2px); }
+.card > .table:last-child,
+.card > .table-responsive:last-child { border-radius: 0 0 calc(var(--presente-radius) - 2px) calc(var(--presente-radius) - 2px); overflow: hidden; }
+.small-box, .info-box { border-radius: var(--presente-radius); }
+.info-box .info-box-icon { border-radius: 14px; }
+
+/* Botões: cantos grandes, peso forte e leve "profundidade" ao clicar */
+.btn {
+  --bs-btn-border-radius: 14px;
+  --bs-btn-font-weight: 700;
+  border-radius: 14px;
+  font-weight: 700;
+}
+.btn-sm { --bs-btn-border-radius: 12px; border-radius: 12px; }
+.btn-lg { --bs-btn-border-radius: 16px; border-radius: 16px; }
+.btn-primary,
+.btn-success,
+.btn-danger,
+.btn-warning,
+.btn-info,
+.btn-secondary {
+  border-bottom-width: 3px;
+  border-bottom-color: rgba(0, 0, 0, 0.22);
+}
+.btn-primary:active,
+.btn-success:active,
+.btn-danger:active,
+.btn-warning:active,
+.btn-info:active,
+.btn-secondary:active {
+  transform: translateY(2px);
+  border-bottom-width: 1px;
+}
+.btn-group > .btn:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.btn-group > .btn:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.btn-group > .btn:first-child { border-top-left-radius: 14px; border-bottom-left-radius: 14px; }
+.btn-group > .btn:last-child { border-top-right-radius: 14px; border-bottom-right-radius: 14px; }
+
+/* Campos de formulário */
+.form-control,
+.form-select,
+.input-group-text {
+  border-radius: 12px;
+  border-width: 2px;
+  border-color: #e5e5e5;
+  background-color: #f7f7f7;
+}
+.form-control:focus,
+.form-select:focus {
+  background-color: #fff;
+  border-color: #1cb0f6;
+  box-shadow: 0 0 0 0.2rem rgba(28, 176, 246, 0.2);
+}
+.form-control-sm, .form-select-sm { border-radius: 10px; }
+.form-control-lg, .form-select-lg { border-radius: 14px; }
+.input-group > .form-control:not(:last-child),
+.input-group > .form-select:not(:last-child),
+.input-group > .input-group-text:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.input-group > .form-control:not(:first-child),
+.input-group > .form-select:not(:first-child),
+.input-group > .input-group-text:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.input-group > .btn:not(:last-child) { border-top-right-radius: 0; border-bottom-right-radius: 0; }
+.input-group > .btn:not(:first-child) { border-top-left-radius: 0; border-bottom-left-radius: 0; }
+.form-check-input { border-width: 2px; }
+.form-check-input:not([type="radio"]) { border-radius: 0.4em; }
+
+/* Tom Select (campos com busca) */
+.ts-control,
+.ts-wrapper.single .ts-control,
+.ts-wrapper.multi .ts-control { border-radius: 12px; border-width: 2px; border-color: #e5e5e5; }
+.ts-dropdown { border-radius: 12px; overflow: hidden; border-width: 2px; }
+.ts-wrapper.multi .ts-control > div { border-radius: 8px; }
+
+/* Badges, alertas, listas */
+.badge { border-radius: 999px; font-weight: 700; padding-left: 0.65em; padding-right: 0.65em; }
+.alert { border-radius: 14px; border-width: 2px; }
+.list-group { --bs-list-group-border-radius: 14px; border-radius: 14px; }
+.list-group-item { border-width: 2px; }
+.progress,
+.progress-stacked { --bs-progress-border-radius: 999px; border-radius: 999px; }
+.progress-bar { border-radius: 999px; }
+
+/* Modais, menus suspensos, popovers e toasts */
+.modal-content { --bs-modal-border-radius: 20px; border-radius: 20px; border-width: 2px; }
+.modal-header { border-top-left-radius: 18px; border-top-right-radius: 18px; }
+.modal-footer { border-bottom-left-radius: 18px; border-bottom-right-radius: 18px; }
+.dropdown-menu { --bs-dropdown-border-radius: 14px; border-radius: 14px; border-width: 2px; padding: 0.4rem; }
+.dropdown-item { border-radius: 10px; }
+.popover { --bs-popover-border-radius: 14px; }
+.tooltip-inner { border-radius: 10px; }
+.toast { --bs-toast-border-radius: 14px; }
+.offcanvas { --bs-offcanvas-border-radius: 20px; }
+
+/* Abas, pílulas e paginação */
+.nav-pills .nav-link { border-radius: 999px; font-weight: 700; }
+.nav-tabs { border-bottom-width: 2px; }
+.nav-tabs .nav-link { border-radius: 12px 12px 0 0; font-weight: 700; }
+.pagination { gap: 0.25rem; }
+.page-link { border-radius: 12px !important; border-width: 2px; font-weight: 700; }
+
+/* Tabelas dentro de cards: cabeçalho e cantos acompanham o card */
+.table-responsive { border-radius: 12px; }
+.card .table > :first-child > tr:first-child > th:first-child { border-top-left-radius: calc(var(--presente-radius) - 2px); }
+.card .table > :first-child > tr:first-child > th:last-child { border-top-right-radius: calc(var(--presente-radius) - 2px); }
+
+/* Navegação lateral e topo (AdminLTE) */
+.sidebar-menu .nav-link,
+.app-sidebar .nav-link { border-radius: 12px; }
+.sidebar-menu > .nav-item > .nav-link.active,
+.app-sidebar .nav-link.active { border-radius: 12px; }
+.app-header .nav-link { border-radius: 12px; }
+.callout { border-radius: 14px; }
+
+/* Imagens e avatares */
+.img-thumbnail { border-radius: 14px; border-width: 2px; }
+.rounded { border-radius: var(--bs-border-radius) !important; }
+.rounded-1 { border-radius: 0.5rem !important; }
+.rounded-2 { border-radius: 0.75rem !important; }
+.rounded-3 { border-radius: 1rem !important; }
+.rounded-4 { border-radius: 1.25rem !important; }
+
+/* Mantém componentes específicos já arredondados */
+.rounded-circle { border-radius: 50% !important; }
+.rounded-pill { border-radius: 999px !important; }

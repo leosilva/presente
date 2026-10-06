@@ -1,4 +1,3 @@
-from multiprocessing import context
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.contrib.auth.decorators import login_required
 from django.db.models import Count, Sum, Q, ProtectedError
@@ -46,9 +45,10 @@ from .models import (
     Troca,
     Conquista,
     ConquistaUsuario,
-    TrilhaGamificacao,
     InscricaoTrilha,
     ItemRecompensa,
+    Missao,
+    MissaoProgresso,
     )
 from .services import PointService, TrocaService, NivelService, ConquistaService, TrilhaService
 from .tables import (
@@ -1337,3 +1337,61 @@ class TrilhaAbrirBauView(LoginRequiredMixin, View):
             })
         messages.success(request, _(f"Baú aberto: +{bonus.pontos} pts!"))
         return redirect(f"{reverse('presente:trilhas')}?trilha={trilha.pk}")
+
+
+class MinhasTrilhasView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/minhas_trilhas.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        trilhas = TrilhaGamificacao.objects.select_related("gamificacao_bonus")
+
+        dados = []
+        for trilha in trilhas:
+            presencas = Attendance.objects.filter(
+                user=user, activity__trilha=trilha
+            ).count()
+            concluida = (
+                UsuarioGamificacao.objects.filter(
+                    user=user, gamificacao=trilha.gamificacao_bonus
+                ).exists()
+                if trilha.gamificacao_bonus
+                else False
+            )
+            dados.append({
+                "trilha": trilha,
+                "presencas": presencas,
+                "meta": trilha.minimo_atividades,
+                "concluida": concluida,
+            })
+
+        context["trilhas"] = dados
+        return context
+
+
+class MinhasMissoesView(LoginRequiredMixin, TemplateView):
+    template_name = "presente/minhas_missoes.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        missoes = Missao.objects.filter(ativa=True).select_related("gamificacao")
+        progressos = {
+            p.missao_id: p
+            for p in MissaoProgresso.objects.filter(user=user, missao__in=missoes)
+        }
+
+        dados = []
+        for missao in missoes:
+            progresso = progressos.get(missao.id)
+            dados.append({
+                "missao": missao,
+                "progresso": progresso.progresso if progresso else 0,
+                "concluida": progresso.concluida if progresso else False,
+            })
+
+        context["missoes"] = dados
+        return context
