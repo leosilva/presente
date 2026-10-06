@@ -185,6 +185,7 @@ class PointService:
 
         data_checkin = attendance.checked_in_at.date()
         cls._check_diversidade_bonus_reversal(user, data_checkin, base_motivo, evento=activity.evento)
+        cls._check_missoes_reversal(user, base_motivo)
 
     @classmethod
     def _on_gamificacao_updated(cls, gamificacao):
@@ -306,13 +307,20 @@ class PointService:
             )
             cls.debit_gamificacao(user, marco.gamificacao_bonus, motivo=motivo, evento=evento)
 
+    @classmethod
+    def _check_missoes(cls, user):
+        """
+        Atualiza o progresso de missões de FREQUÊNCIA ativas para o usuário,
+        concedendo a gamificação vinculada quando a meta é atingida.
+        """
+        total_presencas = Attendance.objects.filter(user=user).count()
+
         missoes_ativas = Missao.objects.filter(
             ativa=True, tipo=Missao.Tipo.FREQUENCIA
         ).select_related("gamificacao")
 
         for missao in missoes_ativas:
-            total_presencas = Attendance.objects.filter(user=user).count()
-            progresso_obj, _ = MissaoProgresso.objects.get_or_create(
+            progresso_obj, _created = MissaoProgresso.objects.get_or_create(
                 user=user, missao=missao
             )
 
@@ -355,6 +363,7 @@ class PointService:
                 progresso_obj.concluida_em = None
 
             progresso_obj.save()
+
     # ──────────────────────────────────────────────────────────────
     # Atualização de nível
     # ──────────────────────────────────────────────────────────────
