@@ -1,7 +1,7 @@
 import django_tables2
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
-from .models import Activity, Attendance, Network,Evento
+from .models import Activity, Attendance, Network,Evento,Brinde
 
 
 class CoreTable(django_tables2.Table):
@@ -163,3 +163,33 @@ class EventoTable(django_tables2.Table):
         model = Evento
         fields = ("nome", "tipo", "data_inicio", "data_fim","atividades")
 
+# tables.py
+
+class BrindeTable(CoreTable):
+    ativo = django_tables2.Column(verbose_name=_("Ativo"), orderable=True)
+    disponivel = django_tables2.Column(verbose_name=_("Disponível"), orderable=False, empty_values=())
+
+    def render_ativo(self, record):
+        if record.ativo:
+            return mark_safe('<span class="badge bg-success">Ativo</span>')
+        return mark_safe('<span class="badge bg-secondary">Inativo</span>')
+
+    def render_disponivel(self, record):
+        if record.disponivel:
+            return mark_safe('<span class="badge bg-success"><i class="bi bi-check-circle"></i> Disponível</span>')
+        if not record.ativo:
+            return mark_safe('<span class="badge bg-secondary">Inativo</span>')
+        if record.quantidade_disponivel <= 0:
+            return mark_safe('<span class="badge bg-danger"><i class="bi bi-box-seam"></i> Sem estoque</span>')
+        return mark_safe('<span class="badge bg-warning text-dark"><i class="bi bi-calendar-x"></i> Expirado</span>')
+
+    class Meta:
+        model = Brinde
+        fields = [
+            "nome",
+            "evento",
+            "pontos_necessarios",
+            "quantidade_disponivel",
+            "ativo",
+            "disponivel",
+        ]

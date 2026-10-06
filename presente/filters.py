@@ -3,7 +3,7 @@ from django import forms
 from django.utils.translation import gettext_lazy as _
 from django.contrib.auth import get_user_model
 from taggit.models import Tag
-from .models import Activity, Attendance,Evento
+from .models import Activity, Attendance,Evento,Brinde
 
 User = get_user_model()
 
@@ -195,3 +195,9 @@ class ActivityAttendanceFilter(django_filters.FilterSet):
             "user__curso",
             "user__periodo_referencia",
         ]
+class BrindeFilter(django_filters.FilterSet):
+    nome = django_filters.CharFilter(lookup_expr="icontains", label=_("Nome"))
+
+    class Meta:
+        model = Brinde
+        fields = ["nome", "evento", "ativo"]

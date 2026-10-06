@@ -64,8 +64,29 @@ Menu.add_item("presente",
         "Meus Brindes",
         reverse("presente:minhas_recompensas"),
         icon="bi bi-cart3",
-        weight=6  # controla a ordem
+        weight=7  # controla a ordem
     )
+)
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Minhas Trilhas",
+        reverse("presente:minhas_trilhas"),
+        icon="bi bi-signpost-split",
+        check=lambda r: r.user.is_authenticated,
+        weight=7,  # controla a ordem
+    ),
+)
+
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Minhas Missões",
+        reverse("presente:minhas_missoes"),
+        icon="bi bi-flag",
+        check=lambda r: r.user.is_authenticated,
+        weight=8,  # controla a ordem
+    ),
 )
 # ADMINISTRAÇÃO section starts here (items below appear under "ADMINISTRAÇÃO" header)
 
@@ -114,3 +135,13 @@ Menu.add_item(
             
     ),     
     )
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Recompensas",
+        reverse("presente:admin_brindes"),
+        icon="bi bi-gift",
+        weight=14,
+        check=lambda r: r.user.is_superuser or r.user.is_staff,
+    ),
+)
