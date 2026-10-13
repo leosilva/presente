@@ -116,7 +116,8 @@ class IndexView(LoginRequiredMixin, PageTitleMixin, TemplateView): # view da pá
                 .first()
             ) or 0
             context["minha_posicao_dashboard"] = (
-                User.objects.annotate(
+                User.objects.filter(is_superuser=False)
+                .annotate(
                     total=Coalesce(Sum("point_history__pontos", filter=pontos_filter), 0)
                 )
                 .filter(
@@ -526,6 +527,7 @@ class RankingListView(ListView):
         pontos_filter = PONTOS_GANHOS & (Q(point_history__evento=evento) if evento else Q())
         return (
             User.objects
+            .filter(is_superuser=False)
             .annotate(
                 total_pontos=Coalesce(
                     Sum("point_history__pontos", filter=pontos_filter),
