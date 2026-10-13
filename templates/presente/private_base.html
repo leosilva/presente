@@ -30,8 +30,8 @@
               <span style="font-size: 0.85rem; font-weight: 500;">{{ user.first_name|default:'Usuário' }}</span>
               {% if nivel_atual %}
               <span style="font-size: 0.65rem; color: #6c757d;">{{ nivel_atual.nome }}</span>
-              <div style="width: 70px; height: 3px; background: #dee2e6; border-radius: 2px; margin-top: 2px;">
-                <div style="width: {{ percentual|floatformat:0 }}%; height: 100%; background: #0d6efd; border-radius: 2px;"></div>
+              <div style="width: 70px; height: 3px; background: #dee2e6; border-radius: 999px; margin-top: 2px;">
+                <div style="width: {{ percentual|floatformat:0 }}%; height: 100%; background: #0d6efd; border-radius: 999px;"></div>
               </div>
               {% endif %}
             </div>

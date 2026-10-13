@@ -37,9 +37,31 @@ Menu.add_item(
     MenuItem(
         "Minhas Pontuações",
         reverse("presente:minhas_pontuacoes"),
-        icon="bi bi-dice-6",
+        icon="bi bi-star",
         check=lambda r: r.user.is_authenticated,
         weight=4,  # controla a ordem
+    ),
+)
+
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Trilhas",
+        reverse("presente:trilhas"),
+        icon="bi bi-signpost-split",
+        check=lambda r: r.user.is_authenticated,
+        weight=4,
+    ),
+)
+
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Conquistas",
+        reverse("presente:conquistas"),
+        icon="bi bi-award",
+        check=lambda r: r.user.is_authenticated,
+        weight=4,
     ),
 )
 
@@ -63,29 +85,18 @@ Menu.add_item("presente",
     MenuItem(
         "Meus Brindes",
         reverse("presente:minhas_recompensas"),
-        icon="bi bi-cart3",
-        weight=7  # controla a ordem
+        icon="bi bi-gift",
+        weight=6  # controla a ordem
     )
 )
 Menu.add_item(
     "presente",
     MenuItem(
-        "Minhas Trilhas",
-        reverse("presente:minhas_trilhas"),
-        icon="bi bi-signpost-split",
+        "Como funciona",
+        reverse("presente:como_funciona"),
+        icon="bi bi-question-circle",
         check=lambda r: r.user.is_authenticated,
-        weight=7,  # controla a ordem
-    ),
-)
-
-Menu.add_item(
-    "presente",
-    MenuItem(
-        "Minhas Missões",
-        reverse("presente:minhas_missoes"),
-        icon="bi bi-flag",
-        check=lambda r: r.user.is_authenticated,
-        weight=8,  # controla a ordem
+        weight=7,
     ),
 )
 # ADMINISTRAÇÃO section starts here (items below appear under "ADMINISTRAÇÃO" header)
