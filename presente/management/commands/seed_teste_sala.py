@@ -10,6 +10,7 @@ from presente.models import (
     Campus,
     Evento,
     Gamificacao,
+    Nivel,
     TipoGamificacao,
     TrilhaGamificacao,
 )
@@ -19,6 +20,15 @@ User = get_user_model()
 EVENTO_NOME = "Aulas - INFO 2 Vespertino (piloto)"
 
 TRILHAS = ["Exatas", "Propedeuticas/Tecnicas", "Humanas", "Programacao", "Geral"]
+
+# (pontos minimos, nome). Sem niveis cadastrados o perfil nunca ganha nivel.
+NIVEIS = [
+    (0, "Iniciante"),
+    (20, "Explorador"),
+    (50, "Dedicado"),
+    (90, "Veterano"),
+    (130, "Lenda"),
+]
 AREAS = ["Exatas", "Propedeuticas/Tecnicas", "Humanas", "Programacao"]
 
 # (data ISO, hora inicio, hora fim, materia, professor(a), trilha)
@@ -155,6 +165,17 @@ class Command(BaseCommand):
             if owner:
                 activity.owners.add(owner)
             criadas += 1
+
+        # O baú só abre ao completar a trilha: mínimo = todas as aulas dela
+        # (o default do campo é 1, o que liberava o bônus na 1ª presença).
+        for trilha in trilhas.values():
+            trilha.minimo_atividades = max(1, trilha.activities.count())
+            trilha.save(update_fields=["minimo_atividades"])
+
+        for pontos_minimos, nome in NIVEIS:
+            Nivel.objects.get_or_create(
+                pontos_minimos=pontos_minimos, defaults={"nome": nome}
+            )
 
         self.stdout.write(
             self.style.SUCCESS(
