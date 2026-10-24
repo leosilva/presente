@@ -755,6 +755,13 @@ class Brinde(models.Model):
     )
     nome = models.CharField(_("Nome"), max_length=255)
     descricao = models.TextField(_("Descrição"), blank=True)
+    imagem = models.ImageField(
+        _("Imagem"),
+        upload_to="brindes/",
+        blank=True,
+        null=True,
+        help_text=_("Imagem ilustrativa do brinde."),
+    )
     pontos_necessarios = models.PositiveIntegerField(
         _("Pontos necessários"),
         help_text=_("Custo em pontos por unidade deste brinde."),
