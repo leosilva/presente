@@ -4,7 +4,7 @@ from django.utils.translation import gettext_lazy as _
 from taggit.models import Tag
 from crispy_forms.helper import FormHelper
 from crispy_forms.layout import Layout, Row, Column, Field, HTML
-from .models import Activity, Network, Evento, Gamificacao, TrilhaGamificacao, Brinde
+from .models import Activity, Network, Evento, Gamificacao, TrilhaGamificacao, Brinde, Conquista
 
 User = get_user_model()
 
@@ -401,6 +401,45 @@ class EventoForm(forms.ModelForm):
             ),
             "descricao",
         )
+
+class ConquistaForm(forms.ModelForm):
+    class Meta:
+        model = Conquista
+        fields = [
+            "nome",
+            "descricao",
+            "icone",
+            "tipo_regra",
+            "valor_necessario",
+            "pontos",
+            "status",
+        ]
+        widgets = {
+            "descricao": forms.Textarea(attrs={"rows": 3}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.helper = FormHelper()
+        self.helper.form_tag = False
+        self.helper.disable_csrf = True
+        self.helper.layout = Layout(
+            Row(
+                Column("nome", css_class="col-md-8"),
+                Column(
+                    Field("status", wrapper_class="form-switch"),
+                    css_class="col-md-4 d-flex align-items-center",
+                ),
+            ),
+            "descricao",
+            "icone",
+            Row(
+                Column("tipo_regra", css_class="col-md-4"),
+                Column("valor_necessario", css_class="col-md-4"),
+                Column("pontos", css_class="col-md-4"),
+            ),
+        )
+
 
 class AttendanceDeleteForm(forms.Form):
     justificativa = forms.CharField(

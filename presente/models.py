@@ -962,6 +962,9 @@ class Conquista(models.Model):
         default=True
     )
 
+    def __str__(self):
+        return self.nome
+
 # Modelo que representa usuário, conquista e data em que foi desbloqueada
 class ConquistaUsuario(models.Model):
     user = models.ForeignKey(

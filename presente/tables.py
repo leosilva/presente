@@ -1,7 +1,7 @@
 import django_tables2
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
-from .models import Activity, Attendance, Network,Evento,Brinde
+from .models import Activity, Attendance, Network,Evento,Brinde,Conquista
 
 
 class CoreTable(django_tables2.Table):
@@ -162,6 +162,20 @@ class EventoTable(django_tables2.Table):
     class Meta:
         model = Evento
         fields = ("nome", "tipo", "data_inicio", "data_fim","atividades")
+
+class ConquistaTable(CoreTable):
+    status = django_tables2.Column(verbose_name=_("Ativo"), orderable=True)
+
+    def render_status(self, record):
+        if record.status:
+            return mark_safe('<span class="badge bg-success">Ativo</span>')
+        return mark_safe('<span class="badge bg-secondary">Inativo</span>')
+
+    class Meta:
+        model = Conquista
+        fields = ("nome", "tipo_regra", "valor_necessario", "pontos", "status")
+        attrs = {"class": "table table-striped"}
+
 
 # tables.py
 

@@ -58,6 +58,7 @@ from .tables import (
     NetworkTable,
     EventoTable,
     BrindeTable,
+    ConquistaTable,
 )
 from .forms import (
     ActivityForm,
@@ -66,6 +67,7 @@ from .forms import (
     EventoForm,
     AttendanceDeleteForm,
     BrindeForm,
+    ConquistaForm,
 )
 from .filters import ActivityFilter, AttendanceFilter, ActivityAttendanceFilter,BrindeFilter
 from .mixins import ActivityOwnerMixin,BrindeAdminMixin
@@ -1207,7 +1209,10 @@ class MinhasRecompensasView(LoginRequiredMixin, TemplateView):
         context["total_itens"] = total_itens
         context["total_pontos"] = PointService.calculate_user_point(self.request.user)
         return context
-    
+
+# ──────────────────────────────────────────────────────────────
+# Conquistas
+# ──────────────────────────────────────────────────────────────   
 class ConquistasView(LoginRequiredMixin, PageTitleMixin, TemplateView):
     template_name = "presente/conquistas.html"
     page_title = _("Minhas Conquistas")
@@ -1237,6 +1242,36 @@ class ConquistasView(LoginRequiredMixin, PageTitleMixin, TemplateView):
             if (itens := [p for p in premiacoes if p.gamificacao.tipo.tipo == codigo])
         ]
         return context
+
+
+# Conquista CRUD Views (administração)
+
+class ConquistaListView(SuperuserRequiredMixin, CoreListView):
+    page_title = _("Conquistas")
+    model = Conquista
+    table_class = ConquistaTable
+
+
+class ConquistaCreateView(SuperuserRequiredMixin, CoreCreateView):
+    model = Conquista
+    page_title = _("Conquistas")
+    form_class = ConquistaForm
+
+
+class ConquistaDetailView(SuperuserRequiredMixin, CoreDetailView):
+    model = Conquista
+    page_title = _("Conquistas")
+
+
+class ConquistaUpdateView(SuperuserRequiredMixin, CoreUpdateView):
+    model = Conquista
+    page_title = _("Conquistas")
+    form_class = ConquistaForm
+
+
+class ConquistaDeleteView(SuperuserRequiredMixin, CoreDeleteView):
+    model = Conquista
+    page_title = _("Conquistas")
 
 
 class TrilhasView(LoginRequiredMixin, PageTitleMixin, TemplateView):

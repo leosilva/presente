@@ -140,12 +140,21 @@ Menu.add_item(
             reverse("presente:evento_list"),
             icon="bi bi-calendar-event",
             weight=13,  # maior para cair depois da linha de ADMINISTRAÇÃO
-            check=lambda r: r.user.is_superuser or r.user.is_staff,
-
-              
-            
+            check=lambda r: r.user.is_superuser or r.user.is_staff,   
     ),     
-    )
+)
+
+Menu.add_item(
+    "presente",
+    MenuItem(
+        "Gerenciar Conquistas",
+        reverse("presente:conquista_list"),
+        icon="bi bi-patch-check-fill",
+        weight=15,
+        check=lambda r: r.user.is_superuser or r.user.is_staff,
+    ),
+)
+
 Menu.add_item(
     "presente",
     MenuItem(

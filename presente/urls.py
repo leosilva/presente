@@ -90,6 +90,12 @@ urlpatterns = [
     path("evento/<int:pk>/", views.EventoDetailView.as_view(), name="evento_view"),
     path("evento/<int:pk>/update/", views.EventoUpdateView.as_view(), name="evento_change"),
     path("evento/<int:pk>/delete/", views.EventoDeleteView.as_view(), name="evento_delete"),
+    # Conquista CRUD URLs
+    path("admin/conquistas/", views.ConquistaListView.as_view(), name="conquista_list"),
+    path("admin/conquistas/add/", views.ConquistaCreateView.as_view(), name="conquista_add"),
+    path("admin/conquistas/<int:pk>/", views.ConquistaDetailView.as_view(), name="conquista_view"),
+    path("admin/conquistas/<int:pk>/update/", views.ConquistaUpdateView.as_view(), name="conquista_change"),
+    path("admin/conquistas/<int:pk>/delete/", views.ConquistaDeleteView.as_view(), name="conquista_delete"),
     # User attendances
     path("my-attendances/", views.MyAttendancesView.as_view(), name="my_attendances"),
     # Public attendance URLs
