@@ -1,6 +1,7 @@
 import django_tables2
 from django.utils.translation import gettext_lazy as _
 from django.utils.safestring import mark_safe
+from django.utils.html import format_html
 from .models import Activity, Attendance, Network,Evento,Brinde,Conquista
 
 
@@ -180,8 +181,23 @@ class ConquistaTable(CoreTable):
 # tables.py
 
 class BrindeTable(CoreTable):
+    imagem = django_tables2.Column(
+        verbose_name=_("Imagem"),
+        orderable=False,
+        empty_values=(),
+        exclude_from_export=True,
+    )
     ativo = django_tables2.Column(verbose_name=_("Ativo"), orderable=True)
     disponivel = django_tables2.Column(verbose_name=_("Disponível"), orderable=False, empty_values=())
+
+    def render_imagem(self, record):
+        if not record.imagem:
+            return "-"
+        return format_html(
+            '<img src="{}" alt="{}" style="width: 40px; height: 40px; object-fit: cover;" class="rounded">',
+            record.imagem.url,
+            record.nome,
+        )
 
     def render_ativo(self, record):
         if record.ativo:
@@ -200,6 +216,7 @@ class BrindeTable(CoreTable):
     class Meta:
         model = Brinde
         fields = [
+            "imagem",
             "nome",
             "evento",
             "pontos_necessarios",

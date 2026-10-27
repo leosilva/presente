@@ -464,6 +464,7 @@ class BrindeForm(forms.ModelForm):
             "evento",
             "nome",
             "descricao",
+            "imagem",
             "pontos_necessarios",
             "quantidade_disponivel",
             "data_validade",
@@ -471,4 +472,11 @@ class BrindeForm(forms.ModelForm):
         ]
         widgets = {
             "data_validade": forms.DateInput(attrs={"type": "date"}),
+            "imagem": forms.ClearableFileInput(attrs={"accept": "image/*"}),
         }
+    def clean_imagem(self):
+        imagem = self.cleaned_data.get("imagem")
+        # Só valida quando um arquivo novo foi enviado
+        if imagem and hasattr(imagem, "size") and imagem.size > 2 * 1024 * 1024:
+            raise forms.ValidationError(_("A imagem deve ter no máximo 2 MB."))
+        return imagem
